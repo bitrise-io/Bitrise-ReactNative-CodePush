@@ -280,16 +280,6 @@ const codePushOptions = {
   checkFrequency: codePush.CheckFrequency.ON_APP_START,
   installMode: codePush.InstallMode.IMMEDIATE,
   mandatoryInstallMode: codePush.InstallMode.IMMEDIATE,
-  updateDialog: {
-    appendReleaseDescription: true,
-    title: "Update Available",
-    descriptionPrefix: "\n\nRelease Notes:\n",
-    mandatoryContinueButtonLabel: "Install Now",
-    mandatoryUpdateMessage: "An update is available that must be installed.",
-    optionalIgnoreButtonLabel: "Later",
-    optionalInstallButtonLabel: "Install Now",
-    optionalUpdateMessage: "An update is available. Would you like to install it?"
-  }
 };
 
 
