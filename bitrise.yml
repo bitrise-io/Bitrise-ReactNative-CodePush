@@ -386,23 +386,22 @@ app:
   - MAESTRO_VERSION_NUMBER: "1.41.0"
     opts:
       is_expand: false
-  # TODO: fill in after creating connected apps and deployments
-  - CONNECTED_APP_ID_IOS: ""
+  - CONNECTED_APP_ID_IOS: "aaad9c12-d388-447a-81f4-3c980e9b4ece"
     opts:
       is_expand: false
-  - CONNECTED_APP_ID_ANDROID: ""
+  - CONNECTED_APP_ID_ANDROID: "ee256b46-93f1-477a-82ec-774163218c54"
     opts:
       is_expand: false
-  - CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE: ""
+  - CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE: "041c0665-5c0a-4958-a85e-ddcc535f9cab"
     opts:
       is_expand: false
-  - CODE_PUSH_DEPLOYMENT_ID_IOS_PROD: ""
+  - CODE_PUSH_DEPLOYMENT_ID_IOS_PROD: "89825733-f5ac-409e-bd4b-1a0e2f0fbc3a"
     opts:
       is_expand: false
-  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_STAGE: ""
+  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_STAGE: "14e5b6af-c80e-4aba-8f21-164c3c75ab39"
     opts:
       is_expand: false
-  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_PROD: ""
+  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_PROD: "04808b5f-cb10-40a9-ba86-d0dd82adeea2"
     opts:
       is_expand: false
 step_bundles:
