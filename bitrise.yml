@@ -406,6 +406,9 @@ app:
   - CODE_PUSH_DEPLOYMENT_ID_ANDROID_PROD: "04808b5f-cb10-40a9-ba86-d0dd82adeea2"
     opts:
       is_expand: false
+  - BITRISE_WORKSPACE_ID: "4afa6c4aa8991295"
+    opts:
+      is_expand: false
 step_bundles:
   fetch_source:
     steps:
