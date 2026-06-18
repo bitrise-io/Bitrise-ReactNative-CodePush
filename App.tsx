@@ -19,6 +19,8 @@ interface Todo {
   completed: boolean;
 }
 
+const UPDATE_MARKER = process.env.CODEPUSH_UPDATE_MARKER || '';
+
 const App = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [todoText, setTodoText] = useState('');
@@ -128,6 +130,9 @@ const App = () => {
       <View style={styles.header}>
         <Text style={styles.title}>Todo List Updated Tests</Text>
         <Text style={styles.subtitle}>With CodePush Integration *</Text>
+        {UPDATE_MARKER ? (
+          <Text testID="codepush-update-marker" style={styles.marker}>{UPDATE_MARKER}</Text>
+        ) : null}
       </View>
 
       <View style={styles.inputContainer}>
@@ -260,6 +265,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'gray',
     marginTop: 50,
+  },
+  marker: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 4,
+    fontFamily: 'monospace',
   },
 });
 

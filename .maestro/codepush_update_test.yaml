@@ -1,0 +1,11 @@
+appId: org.reactjs.native.example.BitriseReactNativeCodePush
+---
+- launchApp
+- extendedWaitUntil:
+    visible: ${CODEPUSH_UPDATE_MARKER}
+    timeout: 120000
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: ${CODEPUSH_UPDATE_MARKER}
+    timeout: 60000

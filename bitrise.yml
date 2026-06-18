@@ -1,0 +1,845 @@
+---
+format_version: '13'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: react-native
+workflows:
+  ios_build_for_simulator:
+    summary: Build iOS simulator binary and create JS bundle.
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+        is_skippable: true
+        is_always_run: true
+    - git-clone@8: {}
+    - npm@1:
+        inputs:
+        - command: install
+    - cocoapods-install@2:
+        inputs:
+        - is_cache_disabled: true
+        - source_root_path: ios
+    - script@1:
+        title: Set Version
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            VERSION=$(node -p "require('./package.json').version")
+            [ -n "$VERSION" ] || (echo "Error: Could not extract version from package.json" && exit 1)
+            envman add --key MARKETING_VERSION --value "$VERSION"
+    - xcode-build-for-simulator@3:
+        inputs:
+        - configuration: release
+        - xcodebuild_options: |-
+            CODE_SIGN_IDENTITY=""
+            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_ALLOWED=NO
+            MARKETING_VERSION=$MARKETING_VERSION
+            CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
+        - verbose_log: 'yes'
+    - deploy-to-bitrise-io@2: {}
+  android_build_for_simulator:
+    summary: Build Android release APK.
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone@8: {}
+    - npm@1:
+        inputs:
+        - command: install
+    - script@1:
+        title: Set App Version
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            VERSION=$(node -p "require('./package.json').version")
+            [ -n "$VERSION" ] || (echo "Error: Could not extract version from package.json" && exit 1)
+            envman add --key APP_VERSION --value "$VERSION"
+    - script@1:
+        title: Inject Android deployment key
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            STRINGS_XML_PATH="$BITRISE_SOURCE_DIR/android/app/src/main/res/values/strings.xml"
+            sed -i 's|<string moduleConfig="true" name="CodePushDeploymentKey"></string>|<string moduleConfig="true" name="CodePushDeploymentKey">'"$CODE_PUSH_DEPLOYMENT_KEY_ANDROID_STAGE"'</string>|g' "$STRINGS_XML_PATH"
+    - android-build@1:
+        inputs:
+        - variant: release
+        - arguments: "-PappVersionName=$APP_VERSION"
+        - module: app
+        - project_location: "$BITRISE_SOURCE_DIR/android"
+    - deploy-to-bitrise-io@2: {}
+  codepush_update_to_server:
+    summary: Push a CodePush update using the Bitrise CodePush CLI plugin.
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone@8: {}
+    - npm@1:
+        inputs:
+        - command: install
+    - script@1:
+        title: Push CodePush update via CLI
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+
+            if bitrise plugin list | grep -q codepush; then
+              echo "CodePush plugin already installed"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+            fi
+
+            export BITRISE_API_TOKEN="$BITRISE_PAT"
+            VERSION=$(node -p "require('./package.json').version")
+
+            bitrise :codepush push \
+              --bundle \
+              --platform ios \
+              --app-version "$VERSION" \
+              --deployment "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE" \
+              --app-id "$CONNECTED_APP_ID_IOS" \
+              --rollout 100
+    triggers:
+      pull_request: []
+      push:
+      - branch: main
+        commit_message:
+          regex: ".*Codepush.*"
+  codepush_bump_version:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::bump_codepush_version: {}
+  codepush_bump_version_signed:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::bump_codepush_version:
+        inputs:
+        - CODEPUSH_VERSION_FILE: codepush-signed-version.json
+  codepush_build_binary:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    - bundle::fetch_source: {}
+    - bundle::apply_bumped_version: {}
+    - npm@1:
+        inputs:
+        - command: install
+    - cocoapods-install@2:
+        inputs:
+        - is_cache_disabled: true
+        - source_root_path: ios
+    - xcode-build-for-simulator@3:
+        inputs:
+        - project_path: ios/BitriseReactNativeCodePush.xcworkspace
+        - scheme: BitriseReactNativeCodePush
+        - xcodebuild_options: |-
+            CODE_SIGN_IDENTITY=""
+            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_ALLOWED=NO
+            MARKETING_VERSION=$NEW_APP_VERSION
+            CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
+    - script@1:
+        title: Zip .app binary
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            ZIP_PATH="$BITRISE_SOURCE_DIR/app.zip"
+            ditto -c -k --keepParent "$BITRISE_APP_DIR_PATH" "$ZIP_PATH"
+            envman add --key CODEPUSH_APP_ZIP_PATH --value "$ZIP_PATH"
+    - deploy-to-bitrise-io@2:
+        inputs:
+        - pipeline_intermediate_files: "CODEPUSH_APP_ZIP_PATH"
+  codepush_build_binary_signed:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    envs:
+    - CODE_PUSH_PUBLIC_KEY: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA/EGf/H8PaZleG5tMeNb1
+        oG2thHtYT3rb6gs/zn/qzarytzRUlnPNcrUDV2jBjjCQrBLuPBMVTX8+MHViL2HD
+        THuiaiRX8oSeBWJJplcmaMPhBmumSngi2E/uzUDU103pFfo3Lwq6GuiMSVRHIUDN
+        S8QkWp9cQtZ8y3uMZeCp89lcJ/RPzUnBHx2bbGjjfp7DS0Re74cNaVvqWRjdHXkA
+        GQnh3xFGiLg8XWrw2hfk+qHomCVvYVUQ7P6nxpgbY/lcIyM8V+NVgvi8uXNUR0DM
+        sCTf64nC+LYlK6KkYjVTh8bV3gDpdXFHtWgq6QYmoKx4CY24jVMsWGr++uLXKNA1
+        TQIDAQAB
+        -----END PUBLIC KEY-----
+      opts:
+        is_expand: false
+    steps:
+    - bundle::fetch_source: {}
+    - bundle::apply_bumped_version: {}
+    - npm@1:
+        inputs:
+        - command: install
+    - cocoapods-install@2:
+        inputs:
+        - is_cache_disabled: true
+        - source_root_path: ios
+    - script@1:
+        title: Inject CodePush public key into Info.plist
+        inputs:
+        - runner_bin: /usr/bin/python3
+        - content: |-
+            import plistlib, os, sys
+
+            plist_path = os.path.join(
+                os.environ.get('BITRISE_SOURCE_DIR', '.'),
+                'ios/BitriseReactNativeCodePush/Info.plist'
+            )
+            public_key = os.environ.get('CODE_PUSH_PUBLIC_KEY', '').strip()
+            if not public_key:
+                print('ERROR: CODE_PUSH_PUBLIC_KEY is empty', file=sys.stderr)
+                sys.exit(1)
+
+            with open(plist_path, 'rb') as f:
+                plist = plistlib.load(f)
+            plist['CodePushPublicKey'] = public_key
+            with open(plist_path, 'wb') as f:
+                plistlib.dump(plist, f)
+            print('CodePushPublicKey injected into Info.plist')
+    - xcode-build-for-simulator@3:
+        inputs:
+        - project_path: ios/BitriseReactNativeCodePush.xcworkspace
+        - scheme: BitriseReactNativeCodePush
+        - xcodebuild_options: |-
+            CODE_SIGN_IDENTITY=""
+            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_ALLOWED=NO
+            MARKETING_VERSION=$NEW_APP_VERSION
+            CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
+    - script@1:
+        title: Zip .app binary
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            ZIP_PATH="$BITRISE_SOURCE_DIR/app.zip"
+            ditto -c -k --keepParent "$BITRISE_APP_DIR_PATH" "$ZIP_PATH"
+            envman add --key CODEPUSH_APP_ZIP_PATH --value "$ZIP_PATH"
+    - deploy-to-bitrise-io@2:
+        inputs:
+        - pipeline_intermediate_files: "CODEPUSH_APP_ZIP_PATH"
+  codepush_export_upload:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::codepush_js_prepare: {}
+    - bundle::generate_codepush_marker: {}
+    - bundle::rn_export_and_upload:
+        inputs:
+        - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
+        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
+        - DESCRIPTION: "E2E test - marker: $CODEPUSH_UPDATE_MARKER"
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: CODEPUSH_UPDATE_MARKER
+  codepush_cli_export_upload:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::codepush_js_prepare: {}
+    - bundle::generate_codepush_marker: {}
+    - script@1:
+        title: Install Bitrise CodePush CLI plugin
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+            if bitrise plugin list | grep -q codepush; then
+              exit 0
+            fi
+            if [ -n "$CODEPUSH_CLI_VERSION" ]; then
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+            fi
+    - script@1:
+        title: Push CodePush update via CLI
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+
+            export BITRISE_API_TOKEN="$BITRISE_PAT"
+
+            bitrise :codepush push \
+              --bundle \
+              --platform ios \
+              --app-version "$NEW_APP_VERSION" \
+              --deployment "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE" \
+              --app-id "$CONNECTED_APP_ID_IOS" \
+              --description "E2E test - marker: $CODEPUSH_UPDATE_MARKER" \
+              --rollout 100
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: CODEPUSH_UPDATE_MARKER
+  codepush_cli_signed_export_upload:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::codepush_js_prepare: {}
+    - bundle::generate_codepush_marker: {}
+    - script@1:
+        title: Install Bitrise CodePush CLI plugin
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+            if bitrise plugin list | grep -q codepush; then
+              exit 0
+            fi
+            if [ -n "$CODEPUSH_CLI_VERSION" ]; then
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+            fi
+    - script@1:
+        title: Write CodePush signing key
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            [ -n "$CODEPUSH_PRIVATE_KEY" ] || (echo "ERROR: CODEPUSH_PRIVATE_KEY is empty" && exit 1)
+            printf '%s' "$CODEPUSH_PRIVATE_KEY" > /tmp/codepush_private_key.pem
+            chmod 600 /tmp/codepush_private_key.pem
+    - script@1:
+        title: Push CodePush update via CLI (signed)
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+
+            export BITRISE_API_TOKEN="$BITRISE_PAT"
+
+            bitrise :codepush push \
+              --bundle \
+              --platform ios \
+              --app-version "$NEW_APP_VERSION" \
+              --deployment "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE" \
+              --app-id "$CONNECTED_APP_ID_IOS" \
+              --description "E2E test - marker: $CODEPUSH_UPDATE_MARKER" \
+              --rollout 100 \
+              --private-key-path /tmp/codepush_private_key.pem
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: CODEPUSH_UPDATE_MARKER
+  codepush_verify:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    - bundle::verify_codepush:
+        inputs:
+        - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary
+  codepush_verify_signed:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    - bundle::verify_codepush:
+        inputs:
+        - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_signed
+app:
+  envs:
+  - BITRISE_PROJECT_PATH: ios/BitriseReactNativeCodePush.xcworkspace
+    opts:
+      is_expand: false
+  - BITRISE_SCHEME: BitriseReactNativeCodePush
+    opts:
+      is_expand: false
+  - BITRISE_DISTRIBUTION_METHOD: development
+    opts:
+      is_expand: false
+  - MAESTRO_VERSION_NUMBER: "1.41.0"
+    opts:
+      is_expand: false
+  # TODO: fill in after creating connected apps and deployments
+  - CONNECTED_APP_ID_IOS: ""
+    opts:
+      is_expand: false
+  - CONNECTED_APP_ID_ANDROID: ""
+    opts:
+      is_expand: false
+  - CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE: ""
+    opts:
+      is_expand: false
+  - CODE_PUSH_DEPLOYMENT_ID_IOS_PROD: ""
+    opts:
+      is_expand: false
+  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_STAGE: ""
+    opts:
+      is_expand: false
+  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_PROD: ""
+    opts:
+      is_expand: false
+step_bundles:
+  fetch_source:
+    steps:
+    - activate-ssh-key@4: {}
+    - git-clone@8: {}
+  apply_bumped_version:
+    steps:
+    - script@1:
+        title: Apply bumped version (local only — not committed)
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            [ -n "$NEW_APP_VERSION" ] || (echo "ERROR: NEW_APP_VERSION is empty" && exit 1)
+            npm version "$NEW_APP_VERSION" --no-git-tag-version --allow-same-version
+  bump_codepush_version:
+    inputs:
+    - CODEPUSH_VERSION_FILE: package.json
+    steps:
+    - bundle::fetch_source: {}
+    - script@1:
+        title: Bump patch version (local only — not committed)
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            node -e "
+              const fs = require('fs');
+              const f = '$CODEPUSH_VERSION_FILE';
+              const pkg = JSON.parse(fs.readFileSync(f, 'utf8'));
+              const parts = pkg.version.split('.');
+              parts[2] = String(parseInt(parts[2]) + 1);
+              pkg.version = parts.join('.');
+              fs.writeFileSync(f, JSON.stringify(pkg, null, 2) + '\n');
+              console.log('Bumped to: ' + pkg.version);
+            "
+    - script@1:
+        title: Export new version
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            NEW_VERSION=$(node -p "require('./$CODEPUSH_VERSION_FILE').version")
+            [ -n "$NEW_VERSION" ] || (echo "ERROR: NEW_VERSION is empty" && exit 1)
+            envman add --key NEW_APP_VERSION --value "$NEW_VERSION"
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: NEW_APP_VERSION
+  codepush_js_prepare:
+    steps:
+    - bundle::fetch_source: {}
+    - bundle::apply_bumped_version: {}
+    - npm@1:
+        inputs:
+        - command: install
+  generate_codepush_marker:
+    steps:
+    - script@1:
+        title: Generate update marker
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            MARKER="update-$(date +%s)"
+            UPDATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            envman add --key CODEPUSH_UPDATE_MARKER --value "$MARKER"
+            envman add --key CODEPUSH_UPDATED_AT --value "$UPDATED_AT"
+    - generate-text-file@0:
+        title: Write codepush-update-meta.json
+        inputs:
+        - file_name: codepush-update-meta.json
+        - file_content: |-
+            {
+              "version": "$NEW_APP_VERSION",
+              "marker": "$CODEPUSH_UPDATE_MARKER",
+              "updatedAt": "$CODEPUSH_UPDATED_AT"
+            }
+  rn_export_and_upload:
+    inputs:
+    - PLATFORM_TARGET: ios
+    - BUNDLE_OUTPUT_PATH: ./build/main.jsbundle
+    - CONNECTED_APP_ID:
+    - DEPLOYMENT_ID:
+    - DESCRIPTION: ""
+    steps:
+    - script@1:
+        title: Extract App Version
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            APP_VERSION=$(node -p "require('./package.json').version")
+            [ -n "$APP_VERSION" ] || (echo "ERROR: APP_VERSION is empty" && exit 1)
+            envman add --key APP_VERSION --value "$APP_VERSION"
+    - script@1:
+        title: Bundle JS
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+            mkdir -p ./build
+            npx react-native bundle \
+              --platform "$PLATFORM_TARGET" \
+              --dev false \
+              --entry-file index.js \
+              --bundle-output "$BUNDLE_OUTPUT_PATH" \
+              --assets-dest ./build
+            zip -r update.zip ./build
+    - script@1:
+        title: Upload CodePush Package
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            PACKAGE_PATH=./update.zip \
+            AUTHORIZATION_TOKEN="$BITRISE_PAT" \
+            CONNECTED_APP_ID="$CONNECTED_APP_ID" \
+            DEPLOYMENT_ID="$DEPLOYMENT_ID" \
+            APP_VERSION="$APP_VERSION" \
+            ROLLOUT=100 \
+            IS_DISABLED=false \
+            IS_MANDATORY=false \
+            DESCRIPTION="$DESCRIPTION" \
+            /bin/bash ./scripts/codepush/upload_code_push_package.sh
+  setup_maestro:
+    steps:
+    - restore-cache@2:
+        inputs:
+        - key: maestro-{{ getenv "MAESTRO_VERSION_NUMBER" }}
+        - paths: maestro/
+    - script@1:
+        title: Install Maestro
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+            if [ -f "$(pwd)/maestro/bin/maestro" ]; then
+              echo "Maestro already installed (from cache), skipping download."
+            else
+              curl -fsSL "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-${MAESTRO_VERSION_NUMBER}/maestro.zip" -o maestro.zip
+              echo "0b87a2eed8c1594fe572c5f29d6d64af389f4b7231ddde714179bbcb05f0fe0c  maestro.zip" | sha256sum -c -
+              unzip maestro.zip
+            fi
+            envman add --key PATH --value "$PATH":"$(pwd)/maestro/bin/"
+    - save-cache@1:
+        inputs:
+        - key: maestro-{{ getenv "MAESTRO_VERSION_NUMBER" }}
+        - paths: maestro/
+  verify_codepush:
+    inputs:
+    - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary
+    steps:
+    - bundle::fetch_source: {}
+    - pull-intermediate-files@1:
+        inputs:
+        - artifact_sources: $ARTIFACT_SOURCE_WORKFLOW
+    - xcode-start-simulator@0:
+        inputs:
+        - destination: platform=iOS Simulator,OS=latest,name=iPhone 16
+    - bundle::setup_maestro: {}
+    - script@1:
+        title: Install app on simulator
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            ditto -x -k "$CODEPUSH_APP_ZIP_PATH" "$BITRISE_SOURCE_DIR"
+            APP_PATH=$(find "$BITRISE_SOURCE_DIR" -name "*.app" -maxdepth 2 | head -1)
+            xcrun simctl install booted "$APP_PATH"
+    - script@1:
+        title: Claude checks and updates Maestro test
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            if [ -z "$ANTHROPIC_API_KEY" ]; then
+              echo "ANTHROPIC_API_KEY not set — skipping Maestro test validation."
+            else
+              npm install -g @anthropic-ai/claude-code
+              claude -p "Review and if needed fix the Maestro test at .maestro/codepush_update_test.yaml.
+
+            This test verifies that a CodePush over-the-air update is received and applied by the app.
+            The app is a bare React Native todo app (not Expo). It is built and installed on the simulator
+            with a bundled JS. Then a CodePush update is uploaded server-side containing the marker in the
+            bundle (via process.env.CODEPUSH_UPDATE_MARKER inlined by Metro bundler). When the app
+            launches, it checks for updates, downloads the new bundle, and applies it immediately
+            (InstallMode.IMMEDIATE). After the update loads, the app should display the marker text.
+
+            The expected update marker is: '${CODEPUSH_UPDATE_MARKER}'
+            The app bundle ID is: org.reactjs.native.example.BitriseReactNativeCodePush
+
+            Read the following files to understand how CodePush is configured and how the marker is rendered:
+            - App.tsx (how the marker is displayed — look for UPDATE_MARKER and testID=codepush-update-marker)
+            - .maestro/codepush_update_test.yaml (the current test)
+
+            VALID MAESTRO COMMANDS ONLY. Here are the commands you may use:
+            - launchApp
+            - stopApp
+            - killApp
+            - tapOn
+            - assertVisible / assertNotVisible
+            - extendedWaitUntil (with visible: and timeout:)
+            - waitForAnimationToEnd
+            - scroll / scrollUntilVisible
+            - inputText / eraseText
+            - back
+            - repeat
+
+            INVALID commands (do NOT use): sleep, wait, delay, pause, waitUntilVisible
+
+            To wait for time to pass, use extendedWaitUntil with a visible element and a long timeout.
+            To restart the app, use stopApp followed by launchApp.
+
+            Only edit the file if there is a genuine bug, missing interaction, or invalid syntax.
+            Do not rewrite for style. Strongly prefer leaving the file unchanged." --allowedTools "Read" "Edit" || \
+                echo "Maestro test validation failed — skipping, using existing test as-is."
+            fi
+    - script@1:
+        title: Start simulator log capture
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            xcrun simctl spawn booted log stream \
+              --predicate 'process == "BitriseReactNativeCodePush"' \
+              > /tmp/codepush_simulator_log.txt 2>&1 &
+            LOG_PID=$!
+            envman add --key LOG_PID --value "$LOG_PID"
+    - script@1:
+        title: Warm-up app launch
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -x
+            touch /tmp/codepush_warmup_start
+            xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
+            sleep 5
+            xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush
+            sleep 1
+    - script@1:
+        title: Collect crash reports after warm-up
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            echo "=== Crash reports after warm-up ==="
+            CRASH_DIR="$HOME/Library/Developer/CoreSimulator/Devices"
+            find "$CRASH_DIR" -name "*.crash" -newer /tmp/codepush_warmup_start 2>/dev/null \
+              | sort | head -5 \
+              | while read -r f; do
+                  echo "--- $f ---"
+                  head -80 "$f"
+                  echo ""
+                done
+    - script@1:
+        title: Check CodePush staging directory after warm-up
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            echo "=== CodePush staging directory ==="
+            DEVICES_DIR="$HOME/Library/Developer/CoreSimulator/Devices"
+            CODEPUSH_FOUND=0
+            for app_dir in "$DEVICES_DIR"/*/data/Containers/Data/Application/*/; do
+              CP_DIR="$app_dir/Library/Application Support/CodePush"
+              if [ -d "$CP_DIR" ]; then
+                CODEPUSH_FOUND=1
+                echo "Found CodePush dir: $CP_DIR"
+                find "$CP_DIR" -type f | sort
+                echo ""
+              fi
+            done
+            if [ "$CODEPUSH_FOUND" -eq 0 ]; then
+              echo "No CodePush staging directory found — update was never staged"
+            fi
+    - script@1:
+        title: Start simulator screen recording
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            xcrun simctl io booted recordVideo /tmp/codepush_verification.mp4 &
+            RECORDING_PID=$!
+            envman add --key RECORDING_PID --value "$RECORDING_PID"
+    - script@1:
+        title: Print Maestro test YAML
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            echo "=== .maestro/codepush_update_test.yaml ==="
+            cat .maestro/codepush_update_test.yaml
+            echo "=========================================="
+    - script@1:
+        title: Run Maestro CodePush update test
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            maestro test -e CODEPUSH_UPDATE_MARKER="$CODEPUSH_UPDATE_MARKER" --format junit .maestro/codepush_update_test.yaml
+    - script@1:
+        title: Dump simulator logs
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            if [ -n "$LOG_PID" ]; then
+              kill "$LOG_PID" 2>/dev/null || true
+              sleep 1
+            fi
+            echo "=== Simulator app log (CodePush relevant lines) ==="
+            if [ -f /tmp/codepush_simulator_log.txt ]; then
+              grep -i "codepush\|hermes\|bundle\|error\|exception\|crash\|update\|rollback" \
+                /tmp/codepush_simulator_log.txt || echo "(no matching lines)"
+              echo ""
+              echo "=== Full simulator log ==="
+              cat /tmp/codepush_simulator_log.txt
+              cp /tmp/codepush_simulator_log.txt "$BITRISE_DEPLOY_DIR/codepush_simulator_log.txt" || true
+            else
+              echo "Log file not found"
+            fi
+    - script@1:
+        title: Stop simulator recording
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            echo "RECORDING_PID=$RECORDING_PID"
+            if [ -n "$RECORDING_PID" ]; then
+              kill -SIGINT "$RECORDING_PID" || true
+              sleep 2
+              ls -lah /tmp/codepush* || echo "none found"
+              cp /tmp/codepush_verification.mp4 ./codepush_verification.mp4 || echo "cp failed"
+            else
+              echo "RECORDING_PID not set — recording was never started"
+            fi
+    - script@1:
+        title: Attach video to test report
+        is_always_run: true
+        inputs:
+        - runner_bin: /usr/bin/python3
+        - content: |-
+            import xml.etree.ElementTree as ET
+
+            try:
+              tree = ET.parse('./report.xml')
+              root = tree.getroot()
+              testsuites = [root] if root.tag == 'testsuite' else root.findall('testsuite')
+              for ts in testsuites:
+                for tc in ts.findall('testcase'):
+                  props = tc.find('properties')
+                  if props is None:
+                    props = ET.SubElement(tc, 'properties')
+                  ET.SubElement(props, 'property', {'name': 'attachment_1', 'value': 'codepush_verification.mp4'})
+              tree.write('./report.xml', xml_declaration=True, encoding='unicode')
+              print('Attachment property added to report.xml')
+            except Exception as e:
+              print(f'Warning: could not update report.xml: {e}')
+    - custom-test-results-export@1:
+        inputs:
+        - test_name: CodePush E2E Test
+        - base_path: "."
+        - search_pattern: report.xml
+    - script@1:
+        title: Copy video to test result dir
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -x
+            TEST_RESULTS_DIR=$(find "$BITRISE_TEST_DEPLOY_DIR" -type d -name "CodePush E2E Test" -print -quit)
+            if [ -f "./codepush_verification.mp4" ] && [ -n "$TEST_RESULTS_DIR" ] && [ -d "$TEST_RESULTS_DIR" ]; then
+              cp ./codepush_verification.mp4 "$TEST_RESULTS_DIR/"
+            fi
+    - deploy-to-bitrise-io@2:
+        is_always_run: true
+pipelines:
+  codepush_e2e_pipeline:
+    workflows:
+      codepush_bump_version:
+        abort_on_fail: true
+      codepush_build_binary:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version
+      codepush_export_upload:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version
+      codepush_verify:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary
+        - codepush_export_upload
+  codepush_e2e_cli_pipeline:
+    workflows:
+      codepush_bump_version:
+        abort_on_fail: true
+      codepush_build_binary:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version
+      codepush_cli_export_upload:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version
+      codepush_verify:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary
+        - codepush_cli_export_upload
+  codepush_e2e_cli_signed_pipeline:
+    workflows:
+      codepush_bump_version_signed:
+        abort_on_fail: true
+      codepush_build_binary_signed:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_signed
+      codepush_cli_signed_export_upload:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_signed
+      codepush_verify_signed:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary_signed
+        - codepush_cli_signed_export_upload
+meta:
+  bitrise.io:
+    stack: osx-xcode-16.0.x
+    machine_type_id: g2.mac.medium
