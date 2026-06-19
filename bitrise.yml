@@ -206,7 +206,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (normal) upload failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER
@@ -263,7 +263,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (CLI) upload failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_CLI
@@ -330,7 +330,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (signed) upload failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_SIGNED
@@ -349,7 +349,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (normal) verification failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_cli:
     meta:
       bitrise.io:
@@ -366,7 +366,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (CLI) verification failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_signed:
     meta:
       bitrise.io:
@@ -383,7 +383,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (signed) verification failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
   codepush_bump_version_wrong_key:
     meta:
       bitrise.io:
@@ -545,7 +545,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (wrong-key) upload failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_WRONG_KEY
@@ -622,7 +622,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (unsigned) upload failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_UNSIGNED
@@ -661,7 +661,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (wrong-key negative) failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_unsigned:
     meta:
       bitrise.io:
@@ -697,7 +697,7 @@ workflows:
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (unsigned-to-signed negative) failed. Build: $BITRISE_BUILD_URL"
-        - api_token: $SLACK_BOT_TOKEN
+        - webhook_url: $SLACK_WEBHOOK_URL
 app:
   envs:
   - BITRISE_PROJECT_PATH: ios/BitriseReactNativeCodePush.xcworkspace
