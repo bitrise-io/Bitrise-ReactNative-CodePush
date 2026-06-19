@@ -1250,13 +1250,13 @@ pipelines:
   codepush_e2e_nightly_pipeline:
     workflows:
       codepush_bump_version:
-        abort_on_fail: true
+        abort_on_fail: false
       codepush_build_binary:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version
       codepush_export_upload:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version
       codepush_verify:
@@ -1265,13 +1265,13 @@ pipelines:
         - codepush_build_binary
         - codepush_export_upload
       codepush_bump_version_cli:
-        abort_on_fail: true
+        abort_on_fail: false
       codepush_build_binary_cli:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version_cli
       codepush_cli_export_upload:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version_cli
       codepush_verify_cli:
@@ -1280,13 +1280,13 @@ pipelines:
         - codepush_build_binary_cli
         - codepush_cli_export_upload
       codepush_bump_version_signed:
-        abort_on_fail: true
+        abort_on_fail: false
       codepush_build_binary_signed:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version_signed
       codepush_cli_signed_export_upload:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version_signed
       codepush_verify_signed:
@@ -1295,13 +1295,13 @@ pipelines:
         - codepush_build_binary_signed
         - codepush_cli_signed_export_upload
       codepush_bump_version_v4:
-        abort_on_fail: true
+        abort_on_fail: false
       codepush_build_binary_v4:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version_v4
       codepush_cli_wrong_key_upload:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version_v4
       codepush_verify_v4_negative:
@@ -1310,13 +1310,13 @@ pipelines:
         - codepush_build_binary_v4
         - codepush_cli_wrong_key_upload
       codepush_bump_version_v5:
-        abort_on_fail: true
+        abort_on_fail: false
       codepush_build_binary_v5:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version_v5
       codepush_cli_unsigned_upload_v5:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_bump_version_v5
       codepush_verify_v5_negative:
