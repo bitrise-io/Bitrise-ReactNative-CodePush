@@ -200,6 +200,13 @@ workflows:
         - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
         - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
         - DESCRIPTION: "E2E test - marker: $CODEPUSH_UPDATE_MARKER"
+    - slack@4:
+        is_always_run: true
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (normal) upload failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER
@@ -250,6 +257,13 @@ workflows:
               --app-id "$CONNECTED_APP_ID_IOS" \
               --description "E2E test - marker: $CODEPUSH_UPDATE_MARKER" \
               --rollout 100
+    - slack@4:
+        is_always_run: true
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (CLI) upload failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_CLI
@@ -310,6 +324,13 @@ workflows:
               --description "E2E test - marker: $CODEPUSH_UPDATE_MARKER" \
               --rollout 100 \
               --private-key-path /tmp/codepush_private_key.pem
+    - slack@4:
+        is_always_run: true
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (signed) upload failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_SIGNED
@@ -323,6 +344,7 @@ workflows:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary
     - slack@4:
+        is_always_run: true
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
@@ -339,6 +361,7 @@ workflows:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_cli
         - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_CLI
     - slack@4:
+        is_always_run: true
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
@@ -355,6 +378,7 @@ workflows:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_signed
         - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_SIGNED
     - slack@4:
+        is_always_run: true
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
@@ -515,6 +539,13 @@ workflows:
             echo "$BODY" | grep -q "$CODEPUSH_UPDATE_MARKER_WRONG_KEY" \
               || (echo "ERROR: marker $CODEPUSH_UPDATE_MARKER_WRONG_KEY not found in deployment after 3 attempts" && exit 1)
             echo "OK: update confirmed in deployment history"
+    - slack@4:
+        is_always_run: true
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (wrong-key) upload failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_WRONG_KEY
@@ -585,6 +616,13 @@ workflows:
             echo "$BODY" | grep -q "$CODEPUSH_UPDATE_MARKER_UNSIGNED" \
               || (echo "ERROR: marker $CODEPUSH_UPDATE_MARKER_UNSIGNED not found in deployment after 3 attempts" && exit 1)
             echo "OK: update confirmed in deployment history"
+    - slack@4:
+        is_always_run: true
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (unsigned) upload failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_UNSIGNED
