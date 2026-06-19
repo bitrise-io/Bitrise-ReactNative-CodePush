@@ -204,7 +204,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - pretext_on_error: ":x: *[Bare RN] CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: API chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
@@ -268,7 +268,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - pretext_on_error: ":x: *[Bare RN] CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: CLI chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
@@ -342,7 +342,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - pretext_on_error: ":x: *[Bare RN] CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: signed chain upload step failed. The CLI push exited with an error or the signed update was rejected by the server. — Logs: $BITRISE_BUILD_URL"
@@ -368,7 +368,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - pretext_on_error: ":x: *[Bare RN] CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: API chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
@@ -392,7 +392,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - pretext_on_error: ":x: *[Bare RN] CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: CLI chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
@@ -416,7 +416,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - pretext_on_error: ":x: *[Bare RN] CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: signed chain verify failed. The signed update was not applied, or the app rejected it unexpectedly. — Logs: $BITRISE_BUILD_URL"
@@ -583,7 +583,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - pretext_on_error: ":x: *[Bare RN] CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: wrong-key chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
@@ -667,7 +667,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - pretext_on_error: ":x: *[Bare RN] CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: unsigned chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
@@ -713,7 +713,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":rotating_light: *CodePush E2E negative test failed*"
+        - pretext_on_error: ":rotating_light: *[Bare RN] CodePush E2E negative test failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: SDK did NOT reject the wrong-key update as expected. The app may have applied an update signed with a mismatched key — signature enforcement may be broken. — Logs: $BITRISE_BUILD_URL"
@@ -756,7 +756,7 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: ":rotating_light: *CodePush E2E negative test failed*"
+        - pretext_on_error: ":rotating_light: *[Bare RN] CodePush E2E negative test failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: SDK did NOT reject the unsigned update as expected. The app may have applied an unsigned update despite signature enforcement being enabled. — Logs: $BITRISE_BUILD_URL"
