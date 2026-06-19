@@ -25,7 +25,6 @@ workflows:
             VERSION=$(node -p "require('./package.json').version")
             [ -n "$VERSION" ] || (echo "Error: Could not extract version from package.json" && exit 1)
             envman add --key MARKETING_VERSION --value "$VERSION"
-            envman add --key IOS_CODEPUSH_SERVER_URL --value "https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io"
     - xcode-build-for-simulator@3:
         inputs:
         - configuration: release
@@ -35,7 +34,7 @@ workflows:
             CODE_SIGNING_ALLOWED=NO
             MARKETING_VERSION=$MARKETING_VERSION
             CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
-            CODEPUSH_SERVER_URL=$IOS_CODEPUSH_SERVER_URL
+            CODEPUSH_SERVER_URL=https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
         - verbose_log: 'yes'
     - deploy-to-bitrise-io@2: {}
   android_build_for_simulator:
@@ -152,7 +151,7 @@ workflows:
             CODE_SIGNING_ALLOWED=NO
             MARKETING_VERSION=$NEW_APP_VERSION
             CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
-            CODEPUSH_SERVER_URL=$IOS_CODEPUSH_SERVER_URL
+            CODEPUSH_SERVER_URL=https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
     - script@1:
         title: Zip .app binary
         inputs:
@@ -225,7 +224,7 @@ workflows:
             CODE_SIGNING_ALLOWED=NO
             MARKETING_VERSION=$NEW_APP_VERSION
             CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
-            CODEPUSH_SERVER_URL=$IOS_CODEPUSH_SERVER_URL
+            CODEPUSH_SERVER_URL=https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
     - script@1:
         title: Zip .app binary
         inputs:
@@ -425,7 +424,6 @@ step_bundles:
             set -e
             [ -n "$NEW_APP_VERSION" ] || (echo "ERROR: NEW_APP_VERSION is empty" && exit 1)
             npm version "$NEW_APP_VERSION" --no-git-tag-version --allow-same-version
-            envman add --key IOS_CODEPUSH_SERVER_URL --value "https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io"
   bump_codepush_version:
     inputs:
     - CODEPUSH_VERSION_FILE: package.json
