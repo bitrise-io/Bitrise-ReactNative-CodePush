@@ -360,6 +360,228 @@ workflows:
         - channel: "#tmp-release-automation-dev-notifications"
         - message: "CodePush E2E (signed) verification failed. Build: $BITRISE_BUILD_URL"
         - api_token: $SLACK_BOT_TOKEN
+  codepush_bump_version_v4:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::bump_codepush_version:
+        inputs:
+        - CODEPUSH_VERSION_FILE: codepush-v4-version.json
+        - VERSION_ENV_KEY: NEW_APP_VERSION_V4
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: NEW_APP_VERSION_V4
+  codepush_bump_version_v5:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::bump_codepush_version:
+        inputs:
+        - CODEPUSH_VERSION_FILE: codepush-v5-version.json
+        - VERSION_ENV_KEY: NEW_APP_VERSION_V5
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: NEW_APP_VERSION_V5
+  codepush_build_binary_v4:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    envs:
+    - CODE_PUSH_PUBLIC_KEY: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA/EGf/H8PaZleG5tMeNb1
+        oG2thHtYT3rb6gs/zn/qzarytzRUlnPNcrUDV2jBjjCQrBLuPBMVTX8+MHViL2HD
+        THuiaiRX8oSeBWJJplcmaMPhBmumSngi2E/uzUDU103pFfo3Lwq6GuiMSVRHIUDN
+        S8QkWp9cQtZ8y3uMZeCp89lcJ/RPzUnBHx2bbGjjfp7DS0Re74cNaVvqWRjdHXkA
+        GQnh3xFGiLg8XWrw2hfk+qHomCVvYVUQ7P6nxpgbY/lcIyM8V+NVgvi8uXNUR0DM
+        sCTf64nC+LYlK6KkYjVTh8bV3gDpdXFHtWgq6QYmoKx4CY24jVMsWGr++uLXKNA1
+        TQIDAQAB
+        -----END PUBLIC KEY-----
+      opts:
+        is_expand: false
+    steps:
+    - bundle::build_binary_simulator:
+        inputs:
+        - APP_VERSION: $NEW_APP_VERSION_V4
+        - CODE_PUSH_PUBLIC_KEY: $CODE_PUSH_PUBLIC_KEY
+  codepush_build_binary_v5:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    envs:
+    - CODE_PUSH_PUBLIC_KEY: |
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA/EGf/H8PaZleG5tMeNb1
+        oG2thHtYT3rb6gs/zn/qzarytzRUlnPNcrUDV2jBjjCQrBLuPBMVTX8+MHViL2HD
+        THuiaiRX8oSeBWJJplcmaMPhBmumSngi2E/uzUDU103pFfo3Lwq6GuiMSVRHIUDN
+        S8QkWp9cQtZ8y3uMZeCp89lcJ/RPzUnBHx2bbGjjfp7DS0Re74cNaVvqWRjdHXkA
+        GQnh3xFGiLg8XWrw2hfk+qHomCVvYVUQ7P6nxpgbY/lcIyM8V+NVgvi8uXNUR0DM
+        sCTf64nC+LYlK6KkYjVTh8bV3gDpdXFHtWgq6QYmoKx4CY24jVMsWGr++uLXKNA1
+        TQIDAQAB
+        -----END PUBLIC KEY-----
+      opts:
+        is_expand: false
+    steps:
+    - bundle::build_binary_simulator:
+        inputs:
+        - APP_VERSION: $NEW_APP_VERSION_V5
+        - CODE_PUSH_PUBLIC_KEY: $CODE_PUSH_PUBLIC_KEY
+  codepush_cli_wrong_key_upload:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::codepush_js_prepare:
+        inputs:
+        - APP_VERSION: $NEW_APP_VERSION_V4
+    - bundle::generate_codepush_marker:
+        inputs:
+        - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_V4
+    - script@1:
+        title: Install Bitrise CodePush CLI plugin
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+            if bitrise plugin list | grep -q codepush; then
+              exit 0
+            fi
+            if [ -n "$CODEPUSH_CLI_VERSION" ]; then
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+            fi
+    - script@1:
+        title: Generate ephemeral wrong key pair
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            openssl genrsa -out /tmp/wrong_private_key.pem 2048
+            chmod 600 /tmp/wrong_private_key.pem
+    - script@1:
+        title: Push update signed with wrong key
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+
+            export BITRISE_API_TOKEN="$BITRISE_PAT"
+
+            bitrise :codepush push \
+              --bundle \
+              --platform ios \
+              --app-version "$NEW_APP_VERSION_V4" \
+              --deployment "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE" \
+              --app-id "$CONNECTED_APP_ID_IOS" \
+              --description "E2E negative test (wrong key) - marker: $CODEPUSH_UPDATE_MARKER_V4" \
+              --rollout 100 \
+              --private-key-path /tmp/wrong_private_key.pem
+    - script@1:
+        title: Remove wrong key
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            rm -f /tmp/wrong_private_key.pem
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: CODEPUSH_UPDATE_MARKER_V4
+  codepush_cli_unsigned_upload_v5:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - bundle::codepush_js_prepare:
+        inputs:
+        - APP_VERSION: $NEW_APP_VERSION_V5
+    - bundle::generate_codepush_marker:
+        inputs:
+        - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_V5
+    - script@1:
+        title: Install Bitrise CodePush CLI plugin
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+            if bitrise plugin list | grep -q codepush; then
+              exit 0
+            fi
+            if [ -n "$CODEPUSH_CLI_VERSION" ]; then
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+            fi
+    - script@1:
+        title: Push unsigned update to signed app
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            set -x
+
+            export BITRISE_API_TOKEN="$BITRISE_PAT"
+
+            bitrise :codepush push \
+              --bundle \
+              --platform ios \
+              --app-version "$NEW_APP_VERSION_V5" \
+              --deployment "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE" \
+              --app-id "$CONNECTED_APP_ID_IOS" \
+              --description "E2E negative test (unsigned) - marker: $CODEPUSH_UPDATE_MARKER_V5" \
+              --rollout 100
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: CODEPUSH_UPDATE_MARKER_V5
+  codepush_verify_v4_negative:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    - bundle::verify_codepush:
+        inputs:
+        - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_v4
+        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_V4
+        - MAESTRO_TEST_FILE: .maestro/codepush_negative_test.yaml
+    - slack@4:
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (wrong-key negative) failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
+  codepush_verify_v5_negative:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    - bundle::verify_codepush:
+        inputs:
+        - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_v5
+        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_V5
+        - MAESTRO_TEST_FILE: .maestro/codepush_negative_test.yaml
+    - slack@4:
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (unsigned-to-signed negative) failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
 app:
   envs:
   - BITRISE_PROJECT_PATH: ios/BitriseReactNativeCodePush.xcworkspace
@@ -626,6 +848,7 @@ step_bundles:
     inputs:
     - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary
     - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER
+    - MAESTRO_TEST_FILE: .maestro/codepush_update_test.yaml
     steps:
     - bundle::fetch_source: {}
     - pull-intermediate-files@1:
@@ -776,7 +999,7 @@ step_bundles:
             #!/usr/bin/env bash
             set -e
             set -o pipefail
-            maestro test -e CODEPUSH_UPDATE_MARKER="$CODEPUSH_MARKER" --format junit .maestro/codepush_update_test.yaml
+            maestro test -e CODEPUSH_UPDATE_MARKER="$CODEPUSH_MARKER" --format junit "$MAESTRO_TEST_FILE"
     - script@1:
         title: Dump simulator logs
         is_always_run: true
@@ -905,6 +1128,40 @@ pipelines:
         depends_on:
         - codepush_build_binary_signed
         - codepush_cli_signed_export_upload
+  codepush_e2e_wrong_key_pipeline:
+    workflows:
+      codepush_bump_version_v4:
+        abort_on_fail: true
+      codepush_build_binary_v4:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_v4
+      codepush_cli_wrong_key_upload:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_v4
+      codepush_verify_v4_negative:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary_v4
+        - codepush_cli_wrong_key_upload
+  codepush_e2e_unsigned_to_signed_pipeline:
+    workflows:
+      codepush_bump_version_v5:
+        abort_on_fail: true
+      codepush_build_binary_v5:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_v5
+      codepush_cli_unsigned_upload_v5:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_v5
+      codepush_verify_v5_negative:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary_v5
+        - codepush_cli_unsigned_upload_v5
   codepush_e2e_nightly_pipeline:
     workflows:
       codepush_bump_version:
@@ -952,6 +1209,36 @@ pipelines:
         depends_on:
         - codepush_build_binary_signed
         - codepush_cli_signed_export_upload
+      codepush_bump_version_v4:
+        abort_on_fail: true
+      codepush_build_binary_v4:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_v4
+      codepush_cli_wrong_key_upload:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_v4
+      codepush_verify_v4_negative:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary_v4
+        - codepush_cli_wrong_key_upload
+      codepush_bump_version_v5:
+        abort_on_fail: true
+      codepush_build_binary_v5:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_v5
+      codepush_cli_unsigned_upload_v5:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_v5
+      codepush_verify_v5_negative:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary_v5
+        - codepush_cli_unsigned_upload_v5
 meta:
   bitrise.io:
     stack: osx-xcode-16.0.x
