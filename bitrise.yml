@@ -186,7 +186,6 @@ workflows:
     - bundle::build_binary_simulator:
         inputs:
         - APP_VERSION: $NEW_APP_VERSION_SIGNED
-        - CODE_PUSH_PUBLIC_KEY: $CODE_PUSH_PUBLIC_KEY
   codepush_export_upload:
     meta:
       bitrise.io:
@@ -432,7 +431,6 @@ workflows:
     - bundle::build_binary_simulator:
         inputs:
         - APP_VERSION: $NEW_APP_VERSION_WRONG_KEY
-        - CODE_PUSH_PUBLIC_KEY: $CODE_PUSH_PUBLIC_KEY
   codepush_build_binary_unsigned:
     meta:
       bitrise.io:
@@ -455,7 +453,6 @@ workflows:
     - bundle::build_binary_simulator:
         inputs:
         - APP_VERSION: $NEW_APP_VERSION_UNSIGNED
-        - CODE_PUSH_PUBLIC_KEY: $CODE_PUSH_PUBLIC_KEY
   codepush_cli_wrong_key_upload:
     meta:
       bitrise.io:
@@ -742,7 +739,6 @@ step_bundles:
   build_binary_simulator:
     inputs:
     - APP_VERSION: ""
-    - CODE_PUSH_PUBLIC_KEY: ""
     steps:
     - bundle::fetch_source: {}
     - script@1:
