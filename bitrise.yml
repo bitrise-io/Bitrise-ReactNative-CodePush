@@ -208,8 +208,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: normal chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -271,8 +272,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: CLI chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -344,8 +346,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: signed chain upload step failed. The CLI push exited with an error or the signed update was rejected by the server. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -369,8 +372,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: normal chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_cli:
@@ -392,8 +396,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: CLI chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_signed:
@@ -415,8 +420,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: signed chain verify failed. The signed update was not applied, or the app rejected it unexpectedly. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_bump_version_wrong_key:
@@ -581,8 +587,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: wrong-key chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -664,8 +671,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: unsigned chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -709,8 +717,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: SDK did NOT reject the wrong-key update as expected. The app may have applied an update signed with a mismatched key — signature enforcement may be broken. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_unsigned:
@@ -751,8 +760,9 @@ workflows:
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
         - message_on_error: "Possible issue: SDK did NOT reject the unsigned update as expected. The app may have applied an unsigned update despite signature enforcement being enabled. — Logs: $BITRISE_BUILD_URL"
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
+        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
+        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
 app:
