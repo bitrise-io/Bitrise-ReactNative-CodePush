@@ -503,7 +503,7 @@ workflows:
             set -e
             for i in 1 2 3; do
               RESPONSE=$(curl -s -w "\n%{http_code}" \
-                -H "Authorization: Bearer $BITRISE_PAT" \
+                -H "Authorization: token $BITRISE_PAT" \
                 "https://api.bitrise.io/v0.1/codepush/deployments/$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE/updates?items_per_page=1&search=$CODEPUSH_UPDATE_MARKER_V4")
               HTTP_CODE=$(echo "$RESPONSE" | tail -1)
               BODY=$(echo "$RESPONSE" | head -n -1)
@@ -573,7 +573,7 @@ workflows:
             set -e
             for i in 1 2 3; do
               RESPONSE=$(curl -s -w "\n%{http_code}" \
-                -H "Authorization: Bearer $BITRISE_PAT" \
+                -H "Authorization: token $BITRISE_PAT" \
                 "https://api.bitrise.io/v0.1/codepush/deployments/$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE/updates?items_per_page=1&search=$CODEPUSH_UPDATE_MARKER_V5")
               HTTP_CODE=$(echo "$RESPONSE" | tail -1)
               BODY=$(echo "$RESPONSE" | head -n -1)
