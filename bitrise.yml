@@ -495,6 +495,26 @@ workflows:
         - content: |-
             #!/usr/bin/env bash
             rm -f /tmp/wrong_private_key.pem
+    - script@1:
+        title: Verify update was published to deployment
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            for i in 1 2 3; do
+              RESPONSE=$(curl -s -w "\n%{http_code}" \
+                -H "Authorization: Bearer $BITRISE_PAT" \
+                "https://api.bitrise.io/v0.1/codepush/deployments/$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE/updates?items_per_page=1&search=$CODEPUSH_UPDATE_MARKER_V4")
+              HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+              BODY=$(echo "$RESPONSE" | head -n -1)
+              [ "$HTTP_CODE" = "200" ] || (echo "ERROR: API returned HTTP $HTTP_CODE: $BODY" && exit 1)
+              echo "$BODY" | grep -q "$CODEPUSH_UPDATE_MARKER_V4" && break
+              echo "Attempt $i: marker not found yet, retrying in 5s..."
+              sleep 5
+            done
+            echo "$BODY" | grep -q "$CODEPUSH_UPDATE_MARKER_V4" \
+              || (echo "ERROR: marker $CODEPUSH_UPDATE_MARKER_V4 not found in deployment after 3 attempts" && exit 1)
+            echo "OK: update confirmed in deployment history"
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_V4
@@ -545,6 +565,26 @@ workflows:
               --app-id "$CONNECTED_APP_ID_IOS" \
               --description "E2E negative test (unsigned) - marker: $CODEPUSH_UPDATE_MARKER_V5" \
               --rollout 100
+    - script@1:
+        title: Verify update was published to deployment
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            for i in 1 2 3; do
+              RESPONSE=$(curl -s -w "\n%{http_code}" \
+                -H "Authorization: Bearer $BITRISE_PAT" \
+                "https://api.bitrise.io/v0.1/codepush/deployments/$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE/updates?items_per_page=1&search=$CODEPUSH_UPDATE_MARKER_V5")
+              HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+              BODY=$(echo "$RESPONSE" | head -n -1)
+              [ "$HTTP_CODE" = "200" ] || (echo "ERROR: API returned HTTP $HTTP_CODE: $BODY" && exit 1)
+              echo "$BODY" | grep -q "$CODEPUSH_UPDATE_MARKER_V5" && break
+              echo "Attempt $i: marker not found yet, retrying in 5s..."
+              sleep 5
+            done
+            echo "$BODY" | grep -q "$CODEPUSH_UPDATE_MARKER_V5" \
+              || (echo "ERROR: marker $CODEPUSH_UPDATE_MARKER_V5 not found in deployment after 3 attempts" && exit 1)
+            echo "OK: update confirmed in deployment history"
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_V5
@@ -559,7 +599,26 @@ workflows:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_v4
         - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_V4
         - MAESTRO_TEST_FILE: .maestro/codepush_negative_test.yaml
+    - script@1:
+        title: Assert SDK rejection log line is present
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            LOG=/tmp/codepush_simulator_log.txt
+            xcrun simctl spawn booted log show \
+              --predicate 'eventMessage contains[cd] "CodePush"' \
+              --last 10m \
+              >> "$LOG" 2>/dev/null || true
+            [ -s "$LOG" ] || (echo "ERROR: simulator log is empty or missing" && exit 1)
+            grep -qi \
+              "CodePush.*sign\|CodePush.*verif\|code.sign.*CodePush\|verif.*CodePush" \
+              "$LOG" \
+              || (echo "ERROR: no CodePush signature rejection log line found — SDK may not have enforced signing" && exit 1)
+            echo "OK: SDK rejection log line confirmed:"
+            grep -i "CodePush.*sign\|CodePush.*verif\|code.sign.*CodePush\|verif.*CodePush" "$LOG" | head -5
     - slack@4:
+        is_always_run: true
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
@@ -576,7 +635,26 @@ workflows:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_v5
         - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_V5
         - MAESTRO_TEST_FILE: .maestro/codepush_negative_test.yaml
+    - script@1:
+        title: Assert SDK rejection log line is present
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            LOG=/tmp/codepush_simulator_log.txt
+            xcrun simctl spawn booted log show \
+              --predicate 'eventMessage contains[cd] "CodePush"' \
+              --last 10m \
+              >> "$LOG" 2>/dev/null || true
+            [ -s "$LOG" ] || (echo "ERROR: simulator log is empty or missing" && exit 1)
+            grep -qi \
+              "CodePush.*sign\|CodePush.*verif\|code.sign.*CodePush\|verif.*CodePush" \
+              "$LOG" \
+              || (echo "ERROR: no CodePush signature rejection log line found — SDK may not have enforced signing" && exit 1)
+            echo "OK: SDK rejection log line confirmed:"
+            grep -i "CodePush.*sign\|CodePush.*verif\|code.sign.*CodePush\|verif.*CodePush" "$LOG" | head -5
     - slack@4:
+        is_always_run: true
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
@@ -936,7 +1014,14 @@ step_bundles:
             set -x
             touch /tmp/codepush_warmup_start
             xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
-            sleep 5
+            echo "Waiting for CodePush update check to complete..."
+            timeout 60 bash -c '
+              until grep -qi \
+                "up.to.date\|no update\|update.*available\|rejecting\|sign\|verif\|codepush.*error" \
+                /tmp/codepush_simulator_log.txt 2>/dev/null; do
+                sleep 2
+              done
+            ' || echo "WARNING: CodePush check completion not detected within 60s — continuing"
             xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush
             sleep 1
     - script@1:
@@ -1220,7 +1305,7 @@ pipelines:
         depends_on:
         - codepush_bump_version_v4
       codepush_verify_v4_negative:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_build_binary_v4
         - codepush_cli_wrong_key_upload
@@ -1235,7 +1320,7 @@ pipelines:
         depends_on:
         - codepush_bump_version_v5
       codepush_verify_v5_negative:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_build_binary_v5
         - codepush_cli_unsigned_upload_v5
