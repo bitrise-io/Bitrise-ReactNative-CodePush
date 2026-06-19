@@ -210,6 +210,7 @@ workflows:
         - message: "Possible issue: normal chain upload step failed. The CLI push exited with an error or the update was not published to the deployment."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
@@ -272,6 +273,7 @@ workflows:
         - message: "Possible issue: CLI chain upload step failed. The CLI push exited with an error or the update was not published to the deployment."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
@@ -344,6 +346,7 @@ workflows:
         - message: "Possible issue: signed chain upload step failed. The CLI push exited with an error or the signed update was rejected by the server."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
@@ -368,6 +371,7 @@ workflows:
         - message: "Possible issue: normal chain verify failed. The update marker was not visible in the app, or the update was not applied after restart."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_cli:
     meta:
@@ -390,6 +394,7 @@ workflows:
         - message: "Possible issue: CLI chain verify failed. The update marker was not visible in the app, or the update was not applied after restart."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_signed:
     meta:
@@ -412,6 +417,7 @@ workflows:
         - message: "Possible issue: signed chain verify failed. The signed update was not applied, or the app rejected it unexpectedly."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_bump_version_wrong_key:
     meta:
@@ -577,6 +583,7 @@ workflows:
         - message: "Possible issue: wrong-key chain upload step failed. The CLI push exited with an error or the update was not published to the deployment."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
@@ -659,6 +666,7 @@ workflows:
         - message: "Possible issue: unsigned chain upload step failed. The CLI push exited with an error or the update was not published to the deployment."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
         inputs:
@@ -703,6 +711,7 @@ workflows:
         - message: "Possible issue: SDK did NOT reject the wrong-key update as expected. The app may have applied an update signed with a mismatched key — signature enforcement may be broken."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_unsigned:
     meta:
@@ -744,6 +753,7 @@ workflows:
         - message: "Possible issue: SDK did NOT reject the unsigned update as expected. The app may have applied an unsigned update despite signature enforcement being enabled."
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
         - color: "#FF0000"
+        - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
 app:
   envs:
