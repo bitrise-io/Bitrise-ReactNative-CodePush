@@ -1047,6 +1047,7 @@ step_bundles:
             set -e
             ditto -x -k "$CODEPUSH_APP_ZIP_PATH" "$BITRISE_SOURCE_DIR"
             APP_PATH=$(find "$BITRISE_SOURCE_DIR" -name "*.app" -maxdepth 2 | head -1)
+            xcrun simctl uninstall booted org.reactjs.native.example.BitriseReactNativeCodePush || true
             xcrun simctl install booted "$APP_PATH"
     - script@1:
         title: Claude checks and updates Maestro test
