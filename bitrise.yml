@@ -207,7 +207,7 @@ workflows:
         - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
-        - message_on_error: "Possible issue: normal chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
+        - message_on_error: "Possible issue: API chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
         - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
@@ -371,7 +371,7 @@ workflows:
         - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
         - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
         - title_link: $BITRISEIO_PIPELINE_BUILD_URL
-        - message_on_error: "Possible issue: normal chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
+        - message_on_error: "Possible issue: API chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
         - color_on_error: "#FF0000"
         - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
