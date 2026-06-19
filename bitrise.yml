@@ -89,8 +89,8 @@ workflows:
             set -x
 
             INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
-            TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
-            if [ "$INSTALLED" = "$TARGET" ]; then
+            TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null || true)
+            if [ -n "$TARGET" ] && [ "$INSTALLED" = "$TARGET" ]; then
               echo "CodePush CLI $INSTALLED is up to date, skipping install"
             else
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
@@ -231,9 +231,9 @@ workflows:
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               TARGET="$CODEPUSH_CLI_VERSION"
             else
-              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null || true)
             fi
-            if [ "$INSTALLED" = "$TARGET" ]; then
+            if [ -n "$TARGET" ] && [ "$INSTALLED" = "$TARGET" ]; then
               echo "CodePush CLI $INSTALLED is up to date, skipping install"
             else
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git ${CODEPUSH_CLI_VERSION:+--version "$CODEPUSH_CLI_VERSION"}
@@ -287,9 +287,9 @@ workflows:
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               TARGET="$CODEPUSH_CLI_VERSION"
             else
-              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null || true)
             fi
-            if [ "$INSTALLED" = "$TARGET" ]; then
+            if [ -n "$TARGET" ] && [ "$INSTALLED" = "$TARGET" ]; then
               echo "CodePush CLI $INSTALLED is up to date, skipping install"
             else
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git ${CODEPUSH_CLI_VERSION:+--version "$CODEPUSH_CLI_VERSION"}
@@ -461,9 +461,9 @@ workflows:
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               TARGET="$CODEPUSH_CLI_VERSION"
             else
-              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null || true)
             fi
-            if [ "$INSTALLED" = "$TARGET" ]; then
+            if [ -n "$TARGET" ] && [ "$INSTALLED" = "$TARGET" ]; then
               echo "CodePush CLI $INSTALLED is up to date, skipping install"
             else
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git ${CODEPUSH_CLI_VERSION:+--version "$CODEPUSH_CLI_VERSION"}
@@ -553,9 +553,9 @@ workflows:
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               TARGET="$CODEPUSH_CLI_VERSION"
             else
-              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest 2>/dev/null | jq -r '.tag_name // empty' 2>/dev/null || true)
             fi
-            if [ "$INSTALLED" = "$TARGET" ]; then
+            if [ -n "$TARGET" ] && [ "$INSTALLED" = "$TARGET" ]; then
               echo "CodePush CLI $INSTALLED is up to date, skipping install"
             else
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git ${CODEPUSH_CLI_VERSION:+--version "$CODEPUSH_CLI_VERSION"}
