@@ -117,6 +117,9 @@ workflows:
         machine_type_id: g2.linux.medium
     steps:
     - bundle::bump_codepush_version: {}
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: NEW_APP_VERSION
   codepush_bump_version_cli:
     meta:
       bitrise.io:
@@ -126,6 +129,10 @@ workflows:
     - bundle::bump_codepush_version:
         inputs:
         - CODEPUSH_VERSION_FILE: codepush-cli-version.json
+        - VERSION_ENV_KEY: NEW_APP_VERSION_CLI
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: NEW_APP_VERSION_CLI
   codepush_bump_version_signed:
     meta:
       bitrise.io:
@@ -135,44 +142,28 @@ workflows:
     - bundle::bump_codepush_version:
         inputs:
         - CODEPUSH_VERSION_FILE: codepush-signed-version.json
+        - VERSION_ENV_KEY: NEW_APP_VERSION_SIGNED
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: NEW_APP_VERSION_SIGNED
   codepush_build_binary:
     meta:
       bitrise.io:
         stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
-    - bundle::fetch_source: {}
-    - bundle::apply_bumped_version: {}
-    - npm@1:
+    - bundle::build_binary_simulator:
         inputs:
-        - command: install
-    - cocoapods-install@2:
+        - APP_VERSION: $NEW_APP_VERSION
+  codepush_build_binary_cli:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    - bundle::build_binary_simulator:
         inputs:
-        - is_cache_disabled: true
-        - source_root_path: ios
-    - xcode-build-for-simulator@3:
-        inputs:
-        - project_path: ios/BitriseReactNativeCodePush.xcworkspace
-        - scheme: BitriseReactNativeCodePush
-        - xcodebuild_options: |-
-            CODE_SIGN_IDENTITY=""
-            CODE_SIGNING_REQUIRED=NO
-            CODE_SIGNING_ALLOWED=NO
-            MARKETING_VERSION=$NEW_APP_VERSION
-            CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
-            CODEPUSH_SERVER_URL=https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
-    - script@1:
-        title: Zip .app binary
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            set -e
-            ZIP_PATH="$BITRISE_SOURCE_DIR/app.zip"
-            ditto -c -k --keepParent "$BITRISE_APP_DIR_PATH" "$ZIP_PATH"
-            envman add --key CODEPUSH_APP_ZIP_PATH --value "$ZIP_PATH"
-    - deploy-to-bitrise-io@2:
-        inputs:
-        - pipeline_intermediate_files: "CODEPUSH_APP_ZIP_PATH"
+        - APP_VERSION: $NEW_APP_VERSION_CLI
   codepush_build_binary_signed:
     meta:
       bitrise.io:
@@ -192,60 +183,10 @@ workflows:
       opts:
         is_expand: false
     steps:
-    - bundle::fetch_source: {}
-    - bundle::apply_bumped_version: {}
-    - npm@1:
+    - bundle::build_binary_simulator:
         inputs:
-        - command: install
-    - cocoapods-install@2:
-        inputs:
-        - is_cache_disabled: true
-        - source_root_path: ios
-    - script@1:
-        title: Inject CodePush public key into Info.plist
-        inputs:
-        - runner_bin: /usr/bin/python3
-        - content: |-
-            import plistlib, os, sys
-
-            plist_path = os.path.join(
-                os.environ.get('BITRISE_SOURCE_DIR', '.'),
-                'ios/BitriseReactNativeCodePush/Info.plist'
-            )
-            public_key = os.environ.get('CODE_PUSH_PUBLIC_KEY', '').strip()
-            if not public_key:
-                print('ERROR: CODE_PUSH_PUBLIC_KEY is empty', file=sys.stderr)
-                sys.exit(1)
-
-            with open(plist_path, 'rb') as f:
-                plist = plistlib.load(f)
-            plist['CodePushPublicKey'] = public_key
-            with open(plist_path, 'wb') as f:
-                plistlib.dump(plist, f)
-            print('CodePushPublicKey injected into Info.plist')
-    - xcode-build-for-simulator@3:
-        inputs:
-        - project_path: ios/BitriseReactNativeCodePush.xcworkspace
-        - scheme: BitriseReactNativeCodePush
-        - xcodebuild_options: |-
-            CODE_SIGN_IDENTITY=""
-            CODE_SIGNING_REQUIRED=NO
-            CODE_SIGNING_ALLOWED=NO
-            MARKETING_VERSION=$NEW_APP_VERSION
-            CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
-            CODEPUSH_SERVER_URL=https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
-    - script@1:
-        title: Zip .app binary
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            set -e
-            ZIP_PATH="$BITRISE_SOURCE_DIR/app.zip"
-            ditto -c -k --keepParent "$BITRISE_APP_DIR_PATH" "$ZIP_PATH"
-            envman add --key CODEPUSH_APP_ZIP_PATH --value "$ZIP_PATH"
-    - deploy-to-bitrise-io@2:
-        inputs:
-        - pipeline_intermediate_files: "CODEPUSH_APP_ZIP_PATH"
+        - APP_VERSION: $NEW_APP_VERSION_SIGNED
+        - CODE_PUSH_PUBLIC_KEY: $CODE_PUSH_PUBLIC_KEY
   codepush_export_upload:
     meta:
       bitrise.io:
@@ -268,7 +209,9 @@ workflows:
         stack: ubuntu-noble-24.04-bitrise-2025-android
         machine_type_id: g2.linux.medium
     steps:
-    - bundle::codepush_js_prepare: {}
+    - bundle::codepush_js_prepare:
+        inputs:
+        - APP_VERSION: $NEW_APP_VERSION_CLI
     - bundle::generate_codepush_marker: {}
     - script@1:
         title: Install Bitrise CodePush CLI plugin
@@ -300,7 +243,7 @@ workflows:
             bitrise :codepush push \
               --bundle \
               --platform ios \
-              --app-version "$NEW_APP_VERSION" \
+              --app-version "$NEW_APP_VERSION_CLI" \
               --deployment "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE" \
               --app-id "$CONNECTED_APP_ID_IOS" \
               --description "E2E test - marker: $CODEPUSH_UPDATE_MARKER" \
@@ -314,7 +257,9 @@ workflows:
         stack: ubuntu-noble-24.04-bitrise-2025-android
         machine_type_id: g2.linux.medium
     steps:
-    - bundle::codepush_js_prepare: {}
+    - bundle::codepush_js_prepare:
+        inputs:
+        - APP_VERSION: $NEW_APP_VERSION_SIGNED
     - bundle::generate_codepush_marker: {}
     - script@1:
         title: Install Bitrise CodePush CLI plugin
@@ -355,7 +300,7 @@ workflows:
             bitrise :codepush push \
               --bundle \
               --platform ios \
-              --app-version "$NEW_APP_VERSION" \
+              --app-version "$NEW_APP_VERSION_SIGNED" \
               --deployment "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE" \
               --app-id "$CONNECTED_APP_ID_IOS" \
               --description "E2E test - marker: $CODEPUSH_UPDATE_MARKER" \
@@ -373,6 +318,27 @@ workflows:
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary
+    - slack@4:
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (normal) verification failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
+  codepush_verify_cli:
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    - bundle::verify_codepush:
+        inputs:
+        - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_cli
+    - slack@4:
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (CLI) verification failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
   codepush_verify_signed:
     meta:
       bitrise.io:
@@ -382,6 +348,12 @@ workflows:
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_signed
+    - slack@4:
+        run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
+        inputs:
+        - channel: "#tmp-release-automation-dev-notifications"
+        - message: "CodePush E2E (signed) verification failed. Build: $BITRISE_BUILD_URL"
+        - api_token: $SLACK_BOT_TOKEN
 app:
   envs:
   - BITRISE_PROJECT_PATH: ios/BitriseReactNativeCodePush.xcworkspace
@@ -423,7 +395,76 @@ step_bundles:
     - activate-ssh-key@4:
         run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
     - git-clone@8: {}
+  build_binary_simulator:
+    inputs:
+    - APP_VERSION: ""
+    - CODE_PUSH_PUBLIC_KEY: ""
+    steps:
+    - bundle::fetch_source: {}
+    - script@1:
+        title: Apply bumped version
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            [ -n "$APP_VERSION" ] || (echo "ERROR: APP_VERSION is empty" && exit 1)
+            npm version "$APP_VERSION" --no-git-tag-version --allow-same-version
+    - npm@1:
+        inputs:
+        - command: install
+    - cocoapods-install@2:
+        inputs:
+        - is_cache_disabled: true
+        - source_root_path: ios
+    - script@1:
+        title: Inject CodePush public key into Info.plist
+        run_if: '{{getenv "CODE_PUSH_PUBLIC_KEY" | ne ""}}'
+        inputs:
+        - runner_bin: /usr/bin/python3
+        - content: |-
+            import plistlib, os, sys
+
+            plist_path = os.path.join(
+                os.environ.get('BITRISE_SOURCE_DIR', '.'),
+                'ios/BitriseReactNativeCodePush/Info.plist'
+            )
+            public_key = os.environ.get('CODE_PUSH_PUBLIC_KEY', '').strip()
+            if not public_key:
+                print('ERROR: CODE_PUSH_PUBLIC_KEY is empty', file=sys.stderr)
+                sys.exit(1)
+
+            with open(plist_path, 'rb') as f:
+                plist = plistlib.load(f)
+            plist['CodePushPublicKey'] = public_key
+            with open(plist_path, 'wb') as f:
+                plistlib.dump(plist, f)
+            print('CodePushPublicKey injected into Info.plist')
+    - xcode-build-for-simulator@3:
+        inputs:
+        - project_path: ios/BitriseReactNativeCodePush.xcworkspace
+        - scheme: BitriseReactNativeCodePush
+        - xcodebuild_options: |-
+            CODE_SIGN_IDENTITY=""
+            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_ALLOWED=NO
+            MARKETING_VERSION=$APP_VERSION
+            CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
+            CODEPUSH_SERVER_URL=https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
+    - script@1:
+        title: Zip .app binary
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            ZIP_PATH="$BITRISE_SOURCE_DIR/app.zip"
+            ditto -c -k --keepParent "$BITRISE_APP_DIR_PATH" "$ZIP_PATH"
+            envman add --key CODEPUSH_APP_ZIP_PATH --value "$ZIP_PATH"
+    - deploy-to-bitrise-io@2:
+        inputs:
+        - pipeline_intermediate_files: "CODEPUSH_APP_ZIP_PATH"
   apply_bumped_version:
+    inputs:
+    - APP_VERSION: ""
     steps:
     - script@1:
         title: Apply bumped version (local only — not committed)
@@ -431,11 +472,12 @@ step_bundles:
         - content: |-
             #!/usr/bin/env bash
             set -e
-            [ -n "$NEW_APP_VERSION" ] || (echo "ERROR: NEW_APP_VERSION is empty" && exit 1)
-            npm version "$NEW_APP_VERSION" --no-git-tag-version --allow-same-version
+            [ -n "$APP_VERSION" ] || (echo "ERROR: APP_VERSION is empty" && exit 1)
+            npm version "$APP_VERSION" --no-git-tag-version --allow-same-version
   bump_codepush_version:
     inputs:
     - CODEPUSH_VERSION_FILE: package.json
+    - VERSION_ENV_KEY: NEW_APP_VERSION
     steps:
     - bundle::fetch_source: {}
     - script@1:
@@ -462,14 +504,15 @@ step_bundles:
             set -e
             NEW_VERSION=$(node -p "require('./$CODEPUSH_VERSION_FILE').version")
             [ -n "$NEW_VERSION" ] || (echo "ERROR: NEW_VERSION is empty" && exit 1)
-            envman add --key NEW_APP_VERSION --value "$NEW_VERSION"
-    - share-pipeline-variable@1.1.0:
-        inputs:
-        - variables: NEW_APP_VERSION
+            envman add --key "$VERSION_ENV_KEY" --value "$NEW_VERSION"
   codepush_js_prepare:
+    inputs:
+    - APP_VERSION: $NEW_APP_VERSION
     steps:
     - bundle::fetch_source: {}
-    - bundle::apply_bumped_version: {}
+    - bundle::apply_bumped_version:
+        inputs:
+        - APP_VERSION: $APP_VERSION
     - npm@1:
         inputs:
         - command: install
@@ -822,7 +865,7 @@ pipelines:
     workflows:
       codepush_bump_version_cli:
         abort_on_fail: true
-      codepush_build_binary:
+      codepush_build_binary_cli:
         abort_on_fail: true
         depends_on:
         - codepush_bump_version_cli
@@ -830,13 +873,60 @@ pipelines:
         abort_on_fail: true
         depends_on:
         - codepush_bump_version_cli
+      codepush_verify_cli:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary_cli
+        - codepush_cli_export_upload
+  codepush_e2e_cli_signed_pipeline:
+    workflows:
+      codepush_bump_version_signed:
+        abort_on_fail: true
+      codepush_build_binary_signed:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_signed
+      codepush_cli_signed_export_upload:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_signed
+      codepush_verify_signed:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary_signed
+        - codepush_cli_signed_export_upload
+  codepush_e2e_nightly_pipeline:
+    workflows:
+      codepush_bump_version:
+        abort_on_fail: true
+      codepush_build_binary:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version
+      codepush_export_upload:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version
       codepush_verify:
         abort_on_fail: true
         depends_on:
         - codepush_build_binary
+        - codepush_export_upload
+      codepush_bump_version_cli:
+        abort_on_fail: true
+      codepush_build_binary_cli:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_cli
+      codepush_cli_export_upload:
+        abort_on_fail: true
+        depends_on:
+        - codepush_bump_version_cli
+      codepush_verify_cli:
+        abort_on_fail: true
+        depends_on:
+        - codepush_build_binary_cli
         - codepush_cli_export_upload
-  codepush_e2e_cli_signed_pipeline:
-    workflows:
       codepush_bump_version_signed:
         abort_on_fail: true
       codepush_build_binary_signed:
