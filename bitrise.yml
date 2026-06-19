@@ -88,7 +88,13 @@ workflows:
             set -o pipefail
             set -x
 
-            bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+            if [ "$INSTALLED" = "$TARGET" ]; then
+              echo "CodePush CLI $INSTALLED is up to date, skipping install"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+            fi
 
             export BITRISE_API_TOKEN="$BITRISE_PAT"
             VERSION=$(node -p "require('./package.json').version")
@@ -221,10 +227,16 @@ workflows:
             set -e
             set -o pipefail
             set -x
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
+              TARGET="$CODEPUSH_CLI_VERSION"
             else
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+            fi
+            if [ "$INSTALLED" = "$TARGET" ]; then
+              echo "CodePush CLI $INSTALLED is up to date, skipping install"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git ${CODEPUSH_CLI_VERSION:+--version "$CODEPUSH_CLI_VERSION"}
             fi
     - script@1:
         title: Push CodePush update via CLI
@@ -271,10 +283,16 @@ workflows:
             set -e
             set -o pipefail
             set -x
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
+              TARGET="$CODEPUSH_CLI_VERSION"
             else
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+            fi
+            if [ "$INSTALLED" = "$TARGET" ]; then
+              echo "CodePush CLI $INSTALLED is up to date, skipping install"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git ${CODEPUSH_CLI_VERSION:+--version "$CODEPUSH_CLI_VERSION"}
             fi
     - script@1:
         title: Write CodePush signing key
@@ -439,10 +457,16 @@ workflows:
             set -e
             set -o pipefail
             set -x
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
+              TARGET="$CODEPUSH_CLI_VERSION"
             else
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+            fi
+            if [ "$INSTALLED" = "$TARGET" ]; then
+              echo "CodePush CLI $INSTALLED is up to date, skipping install"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git ${CODEPUSH_CLI_VERSION:+--version "$CODEPUSH_CLI_VERSION"}
             fi
     - script@1:
         title: Generate ephemeral wrong key pair
@@ -525,10 +549,16 @@ workflows:
             set -e
             set -o pipefail
             set -x
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
+              TARGET="$CODEPUSH_CLI_VERSION"
             else
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
+              TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
+            fi
+            if [ "$INSTALLED" = "$TARGET" ]; then
+              echo "CodePush CLI $INSTALLED is up to date, skipping install"
+            else
+              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git ${CODEPUSH_CLI_VERSION:+--version "$CODEPUSH_CLI_VERSION"}
             fi
     - script@1:
         title: Push unsigned update to signed app
