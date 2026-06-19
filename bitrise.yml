@@ -212,7 +212,9 @@ workflows:
     - bundle::codepush_js_prepare:
         inputs:
         - APP_VERSION: $NEW_APP_VERSION_CLI
-    - bundle::generate_codepush_marker: {}
+    - bundle::generate_codepush_marker:
+        inputs:
+        - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_CLI
     - script@1:
         title: Install Bitrise CodePush CLI plugin
         inputs:
@@ -250,7 +252,7 @@ workflows:
               --rollout 100
     - share-pipeline-variable@1.1.0:
         inputs:
-        - variables: CODEPUSH_UPDATE_MARKER
+        - variables: CODEPUSH_UPDATE_MARKER_CLI
   codepush_cli_signed_export_upload:
     meta:
       bitrise.io:
@@ -260,7 +262,9 @@ workflows:
     - bundle::codepush_js_prepare:
         inputs:
         - APP_VERSION: $NEW_APP_VERSION_SIGNED
-    - bundle::generate_codepush_marker: {}
+    - bundle::generate_codepush_marker:
+        inputs:
+        - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_SIGNED
     - script@1:
         title: Install Bitrise CodePush CLI plugin
         inputs:
@@ -308,7 +312,7 @@ workflows:
               --private-key-path /tmp/codepush_private_key.pem
     - share-pipeline-variable@1.1.0:
         inputs:
-        - variables: CODEPUSH_UPDATE_MARKER
+        - variables: CODEPUSH_UPDATE_MARKER_SIGNED
   codepush_verify:
     meta:
       bitrise.io:
@@ -333,6 +337,7 @@ workflows:
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_cli
+        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_CLI
     - slack@4:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
@@ -348,6 +353,7 @@ workflows:
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_signed
+        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_SIGNED
     - slack@4:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
@@ -517,6 +523,8 @@ step_bundles:
         inputs:
         - command: install
   generate_codepush_marker:
+    inputs:
+    - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER
     steps:
     - script@1:
         title: Generate update marker
@@ -524,9 +532,10 @@ step_bundles:
         - content: |-
             #!/usr/bin/env bash
             set -e
-            MARKER="update-$(date +%s)"
+            MARKER="update-${BITRISE_BUILD_NUMBER}-$(date +%s)"
             UPDATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             envman add --key CODEPUSH_UPDATE_MARKER --value "$MARKER"
+            envman add --key "$MARKER_ENV_KEY" --value "$MARKER"
             envman add --key CODEPUSH_UPDATED_AT --value "$UPDATED_AT"
     - generate-text-file@0:
         title: Write codepush-update-meta.json
@@ -616,6 +625,7 @@ step_bundles:
   verify_codepush:
     inputs:
     - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary
+    - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER
     steps:
     - bundle::fetch_source: {}
     - pull-intermediate-files@1:
@@ -766,7 +776,7 @@ step_bundles:
             #!/usr/bin/env bash
             set -e
             set -o pipefail
-            maestro test -e CODEPUSH_UPDATE_MARKER="$CODEPUSH_UPDATE_MARKER" --format junit .maestro/codepush_update_test.yaml
+            maestro test -e CODEPUSH_UPDATE_MARKER="$CODEPUSH_MARKER" --format junit .maestro/codepush_update_test.yaml
     - script@1:
         title: Dump simulator logs
         is_always_run: true
@@ -908,7 +918,7 @@ pipelines:
         depends_on:
         - codepush_bump_version
       codepush_verify:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_build_binary
         - codepush_export_upload
@@ -923,7 +933,7 @@ pipelines:
         depends_on:
         - codepush_bump_version_cli
       codepush_verify_cli:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_build_binary_cli
         - codepush_cli_export_upload
@@ -938,7 +948,7 @@ pipelines:
         depends_on:
         - codepush_bump_version_signed
       codepush_verify_signed:
-        abort_on_fail: true
+        abort_on_fail: false
         depends_on:
         - codepush_build_binary_signed
         - codepush_cli_signed_export_upload
