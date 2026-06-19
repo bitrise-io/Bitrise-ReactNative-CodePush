@@ -88,11 +88,7 @@ workflows:
             set -o pipefail
             set -x
 
-            if bitrise plugin list | grep -q codepush; then
-              echo "CodePush plugin already installed"
-            else
-              bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
-            fi
+            bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git
 
             export BITRISE_API_TOKEN="$BITRISE_PAT"
             VERSION=$(node -p "require('./package.json').version")
@@ -225,9 +221,6 @@ workflows:
             set -e
             set -o pipefail
             set -x
-            if bitrise plugin list | grep -q codepush; then
-              exit 0
-            fi
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
             else
@@ -278,9 +271,6 @@ workflows:
             set -e
             set -o pipefail
             set -x
-            if bitrise plugin list | grep -q codepush; then
-              exit 0
-            fi
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
             else
@@ -449,9 +439,6 @@ workflows:
             set -e
             set -o pipefail
             set -x
-            if bitrise plugin list | grep -q codepush; then
-              exit 0
-            fi
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
             else
@@ -538,9 +525,6 @@ workflows:
             set -e
             set -o pipefail
             set -x
-            if bitrise plugin list | grep -q codepush; then
-              exit 0
-            fi
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               bitrise plugin install --source https://github.com/bitrise-io/bitrise-plugins-codepush-cli.git --version "$CODEPUSH_CLI_VERSION"
             else
