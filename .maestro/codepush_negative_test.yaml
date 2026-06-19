@@ -1,0 +1,13 @@
+appId: org.reactjs.native.example.BitriseReactNativeCodePush
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Todo List Updated Tests"
+    timeout: 60000
+- assertVisible: "Todo List Updated Tests"
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Todo List Updated Tests"
+    timeout: 60000
+- assertNotVisible: ${CODEPUSH_UPDATE_MARKER}

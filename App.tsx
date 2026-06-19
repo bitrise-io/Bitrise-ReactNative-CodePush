@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import codePush from '@code-push-next/react-native-code-push';
+import meta from './codepush-update-meta.json';
 
 // Define Todo item type
 interface Todo {
@@ -18,6 +19,8 @@ interface Todo {
   text: string;
   completed: boolean;
 }
+
+const UPDATE_MARKER = meta.marker !== 'baseline' ? meta.marker : '';
 
 const App = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -128,6 +131,9 @@ const App = () => {
       <View style={styles.header}>
         <Text style={styles.title}>Todo List Updated Tests</Text>
         <Text style={styles.subtitle}>With CodePush Integration *</Text>
+        {UPDATE_MARKER ? (
+          <Text testID="codepush-update-marker" style={styles.marker}>{UPDATE_MARKER}</Text>
+        ) : null}
       </View>
 
       <View style={styles.inputContainer}>
@@ -261,24 +267,20 @@ const styles = StyleSheet.create({
     color: 'gray',
     marginTop: 50,
   },
+  marker: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 4,
+    fontFamily: 'monospace',
+  },
 });
 
 
 // CodePush configuration
 const codePushOptions = {
   checkFrequency: codePush.CheckFrequency.ON_APP_START,
-  installMode: codePush.InstallMode.IMMEDIATE,
-  mandatoryInstallMode: codePush.InstallMode.IMMEDIATE,
-  updateDialog: {
-    appendReleaseDescription: true,
-    title: "Update Available",
-    descriptionPrefix: "\n\nRelease Notes:\n",
-    mandatoryContinueButtonLabel: "Install Now",
-    mandatoryUpdateMessage: "An update is available that must be installed.",
-    optionalIgnoreButtonLabel: "Later",
-    optionalInstallButtonLabel: "Install Now",
-    optionalUpdateMessage: "An update is available. Would you like to install it?"
-  }
+  installMode: codePush.InstallMode.ON_NEXT_RESTART,
+  mandatoryInstallMode: codePush.InstallMode.ON_NEXT_RESTART,
 };
 
 
