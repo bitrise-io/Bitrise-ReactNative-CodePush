@@ -762,21 +762,20 @@ step_bundles:
         - source_root_path: ios
     - script@1:
         title: Inject CodePush public key into Info.plist
-        run_if: '{{getenv "CODE_PUSH_PUBLIC_KEY" | ne ""}}'
         inputs:
         - runner_bin: /usr/bin/python3
         - content: |-
             import plistlib, os, sys
 
+            public_key = os.environ.get('CODE_PUSH_PUBLIC_KEY', '').strip()
+            if not public_key:
+                print('CODE_PUSH_PUBLIC_KEY not set, skipping injection')
+                sys.exit(0)
+
             plist_path = os.path.join(
                 os.environ.get('BITRISE_SOURCE_DIR', '.'),
                 'ios/BitriseReactNativeCodePush/Info.plist'
             )
-            public_key = os.environ.get('CODE_PUSH_PUBLIC_KEY', '').strip()
-            if not public_key:
-                print('ERROR: CODE_PUSH_PUBLIC_KEY is empty', file=sys.stderr)
-                sys.exit(1)
-
             with open(plist_path, 'rb') as f:
                 plist = plistlib.load(f)
             plist['CodePushPublicKey'] = public_key
