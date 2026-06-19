@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import codePush from '@code-push-next/react-native-code-push';
+import meta from './codepush-update-meta.json';
 
 // Define Todo item type
 interface Todo {
@@ -19,7 +20,7 @@ interface Todo {
   completed: boolean;
 }
 
-const UPDATE_MARKER = process.env.CODEPUSH_UPDATE_MARKER || '';
+const UPDATE_MARKER = meta.marker !== 'baseline' ? meta.marker : '';
 
 const App = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
