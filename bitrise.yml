@@ -204,12 +204,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":x: *CodePush E2E pipeline failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: normal chain upload step failed. The CLI push exited with an error or the update was not published to the deployment."
+        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: normal chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -267,12 +267,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":x: *CodePush E2E pipeline failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: CLI chain upload step failed. The CLI push exited with an error or the update was not published to the deployment."
+        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: CLI chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -340,12 +340,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":x: *CodePush E2E pipeline failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: signed chain upload step failed. The CLI push exited with an error or the signed update was rejected by the server."
+        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: signed chain upload step failed. The CLI push exited with an error or the signed update was rejected by the server. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -365,12 +365,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":x: *CodePush E2E pipeline failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: normal chain verify failed. The update marker was not visible in the app, or the update was not applied after restart."
+        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: normal chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_cli:
@@ -388,12 +388,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":x: *CodePush E2E pipeline failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: CLI chain verify failed. The update marker was not visible in the app, or the update was not applied after restart."
+        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: CLI chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_signed:
@@ -411,12 +411,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":x: *CodePush E2E pipeline failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: signed chain verify failed. The signed update was not applied, or the app rejected it unexpectedly."
+        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: signed chain verify failed. The signed update was not applied, or the app rejected it unexpectedly. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_bump_version_wrong_key:
@@ -577,12 +577,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":x: *CodePush E2E pipeline failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: wrong-key chain upload step failed. The CLI push exited with an error or the update was not published to the deployment."
+        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: wrong-key chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -660,12 +660,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":x: *CodePush E2E pipeline failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: unsigned chain upload step failed. The CLI push exited with an error or the update was not published to the deployment."
+        - pretext_on_error: ":x: *CodePush E2E pipeline failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: unsigned chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
     - share-pipeline-variable@1.1.0:
@@ -705,12 +705,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":rotating_light: *CodePush E2E negative test failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: SDK did NOT reject the wrong-key update as expected. The app may have applied an update signed with a mismatched key — signature enforcement may be broken."
+        - pretext_on_error: ":rotating_light: *CodePush E2E negative test failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: SDK did NOT reject the wrong-key update as expected. The app may have applied an update signed with a mismatched key — signature enforcement may be broken. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
   codepush_verify_unsigned:
@@ -747,12 +747,12 @@ workflows:
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext: ":rotating_light: *CodePush E2E negative test failed*"
-        - title: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISE_BUILD_URL
-        - message: "Possible issue: SDK did NOT reject the unsigned update as expected. The app may have applied an unsigned update despite signature enforcement being enabled."
+        - pretext_on_error: ":rotating_light: *CodePush E2E negative test failed*"
+        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
+        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
+        - message_on_error: "Possible issue: SDK did NOT reject the unsigned update as expected. The app may have applied an unsigned update despite signature enforcement being enabled. — Logs: $BITRISE_BUILD_URL"
         - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID|true\nBranch|$BITRISE_GIT_BRANCH|true"
-        - color: "#FF0000"
+        - color_on_error: "#FF0000"
         - author_name: ""
         - webhook_url: $SLACK_WEBHOOK_URL
 app:
