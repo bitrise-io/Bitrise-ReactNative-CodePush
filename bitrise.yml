@@ -88,7 +88,7 @@ workflows:
             set -o pipefail
             set -x
 
-            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
             TARGET=$(curl -sf https://api.github.com/repos/bitrise-io/bitrise-plugins-codepush-cli/releases/latest | jq -r '.tag_name')
             if [ "$INSTALLED" = "$TARGET" ]; then
               echo "CodePush CLI $INSTALLED is up to date, skipping install"
@@ -227,7 +227,7 @@ workflows:
             set -e
             set -o pipefail
             set -x
-            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               TARGET="$CODEPUSH_CLI_VERSION"
             else
@@ -283,7 +283,7 @@ workflows:
             set -e
             set -o pipefail
             set -x
-            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               TARGET="$CODEPUSH_CLI_VERSION"
             else
@@ -457,7 +457,7 @@ workflows:
             set -e
             set -o pipefail
             set -x
-            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               TARGET="$CODEPUSH_CLI_VERSION"
             else
@@ -549,7 +549,7 @@ workflows:
             set -e
             set -o pipefail
             set -x
-            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            INSTALLED=$(bitrise :codepush version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
             if [ -n "$CODEPUSH_CLI_VERSION" ]; then
               TARGET="$CODEPUSH_CLI_VERSION"
             else
