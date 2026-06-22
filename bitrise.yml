@@ -320,7 +320,7 @@ workflows:
               --app-version "$NEW_APP_VERSION_SIGNED" \
               --deployment "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE" \
               --app-id "$CONNECTED_APP_ID_IOS" \
-              --description "E2E test - marker: $CODEPUSH_UPDATE_MARKER" \
+              --description "E2E test (signed) - marker: $CODEPUSH_UPDATE_MARKER_SIGNED" \
               --rollout 100 \
               --private-key-path /tmp/codepush_private_key.pem
     - bundle::notify_slack_on_failure:
