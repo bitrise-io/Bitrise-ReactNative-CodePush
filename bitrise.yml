@@ -148,6 +148,32 @@ workflows:
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: NEW_APP_VERSION_SIGNED
+  codepush_validate_pat:
+    meta:
+      bitrise.io:
+        stack: ubuntu-noble-24.04-bitrise-2025-android
+        machine_type_id: g2.linux.medium
+    steps:
+    - script@1:
+        title: Validate BITRISE_PAT against CodePush API
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            HTTP_STATUS=$(curl -s -o /tmp/pat_check.json -w "%{http_code}" \
+              -H "Authorization: token $BITRISE_PAT" \
+              "https://api.bitrise.io/v0.1/me")
+            echo "HTTP status: $HTTP_STATUS"
+            cat /tmp/pat_check.json
+            if [ "$HTTP_STATUS" = "401" ]; then
+              echo "ERROR: BITRISE_PAT is invalid or expired"
+              exit 1
+            fi
+            echo "PAT is valid"
+    - bundle::notify_slack_on_failure:
+        inputs:
+        - PRETEXT: ":key: *[Bare RN] CodePush nightly: BITRISE_PAT is invalid or expired*"
+        - MESSAGE: "The nightly pipeline was aborted because BITRISE_PAT returned HTTP 401. Please rotate the secret in the Bitrise app settings. — $BITRISE_BUILD_URL"
   codepush_build_binary_plain:
     meta:
       bitrise.io:
@@ -1278,8 +1304,12 @@ pipelines:
         - codepush_cli_unsigned_upload
   codepush_e2e_nightly_pipeline:
     workflows:
+      codepush_validate_pat:
+        abort_on_fail: true
       codepush_bump_version:
         abort_on_fail: false
+        depends_on:
+        - codepush_validate_pat
       codepush_build_binary_plain:
         abort_on_fail: false
         depends_on:
@@ -1295,6 +1325,8 @@ pipelines:
         - codepush_export_upload
       codepush_bump_version_cli:
         abort_on_fail: false
+        depends_on:
+        - codepush_validate_pat
       codepush_build_binary_cli:
         abort_on_fail: false
         depends_on:
@@ -1310,6 +1342,8 @@ pipelines:
         - codepush_cli_export_upload
       codepush_bump_version_signed:
         abort_on_fail: false
+        depends_on:
+        - codepush_validate_pat
       codepush_build_binary_signed:
         abort_on_fail: false
         depends_on:
@@ -1325,6 +1359,8 @@ pipelines:
         - codepush_cli_signed_export_upload
       codepush_bump_version_wrong_key:
         abort_on_fail: false
+        depends_on:
+        - codepush_validate_pat
       codepush_build_binary_wrong_key:
         abort_on_fail: false
         depends_on:
@@ -1340,6 +1376,8 @@ pipelines:
         - codepush_cli_wrong_key_upload
       codepush_bump_version_unsigned:
         abort_on_fail: false
+        depends_on:
+        - codepush_validate_pat
       codepush_build_binary_unsigned:
         abort_on_fail: false
         depends_on:
