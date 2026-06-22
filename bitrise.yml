@@ -148,7 +148,7 @@ workflows:
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: NEW_APP_VERSION_SIGNED
-  codepush_build_binary:
+  codepush_build_binary_plain:
     meta:
       bitrise.io:
         stack: osx-xcode-16.0.x
@@ -337,7 +337,7 @@ workflows:
     steps:
     - bundle::verify_codepush:
         inputs:
-        - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary
+        - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_plain
     - bundle::notify_slack_on_failure:
         inputs:
         - MESSAGE: "Possible issue: API chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
@@ -952,7 +952,7 @@ step_bundles:
         - paths: maestro/
   verify_codepush:
     inputs:
-    - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary
+    - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_plain
     - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER
     - MAESTRO_TEST_FILE: .maestro/codepush_update_test.yaml
     steps:
@@ -1195,7 +1195,7 @@ pipelines:
     workflows:
       codepush_bump_version:
         abort_on_fail: true
-      codepush_build_binary:
+      codepush_build_binary_plain:
         abort_on_fail: true
         depends_on:
         - codepush_bump_version
@@ -1206,7 +1206,7 @@ pipelines:
       codepush_verify:
         abort_on_fail: true
         depends_on:
-        - codepush_build_binary
+        - codepush_build_binary_plain
         - codepush_export_upload
   codepush_e2e_cli_pipeline:
     workflows:
@@ -1280,7 +1280,7 @@ pipelines:
     workflows:
       codepush_bump_version:
         abort_on_fail: false
-      codepush_build_binary:
+      codepush_build_binary_plain:
         abort_on_fail: false
         depends_on:
         - codepush_bump_version
@@ -1291,7 +1291,7 @@ pipelines:
       codepush_verify:
         abort_on_fail: false
         depends_on:
-        - codepush_build_binary
+        - codepush_build_binary_plain
         - codepush_export_upload
       codepush_bump_version_cli:
         abort_on_fail: false
