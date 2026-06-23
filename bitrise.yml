@@ -854,31 +854,6 @@ workflows:
             envman add --key DIFF_LOG_PID --value "$DIFF_LOG_PID"
             echo "Diff log capture PID: $DIFF_LOG_PID"
     - script@1:
-        title: Warm-up launch to trigger the diff download
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            set -e
-            set -x
-            # The SDK still has update A applied and reports A's hash on this
-            # check, so the server answers with a diff URL. With
-            # InstallMode.ON_NEXT_RESTART the diff is downloaded and merged now
-            # and applied on the next launch (performed by the Maestro test below).
-            # During the download the SDK logs "[CodePush] Applying diff update."
-            # (or "Applying full update.") followed by the integrity/signing
-            # checks (CodePushPackage.m) — wait for any of those to appear.
-            xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
-            echo "Waiting for the CodePush update download / diff merge to complete..."
-            timeout 120 bash -c '
-              until grep -qi \
-                "Applying diff update\|Applying full update\|integrity check\|code signing check\|no update available\|codepush.*error" \
-                /tmp/codepush-sim-log.txt 2>/dev/null; do
-                sleep 2
-              done
-            ' || echo "WARNING: CodePush download/merge completion not detected within 120s — continuing"
-            xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush || true
-            sleep 1
-    - script@1:
         title: Run Maestro test asserting update B marker
         inputs:
         - content: |-
