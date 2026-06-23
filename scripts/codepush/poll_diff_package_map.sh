@@ -1,52 +1,75 @@
 #!/bin/bash
 #
-# Polls the Release Management Public API until a CodePush package has a
-# non-empty diff_package_map — i.e. the server has finished generating bundle
-# diffs for that package against earlier releases. Used by the bundle-diff E2E
-# test to gate the diff-serving phase on diff availability.
+# Probes the public CodePush update_check endpoint as if it were a client that
+# already has a given update installed, and succeeds once the server answers
+# with a *diff* download URL (download_url containing "diff-") instead of the
+# full package. This is the proof that bundle diffing produced and is serving a
+# diff for that client.
 #
-# diff_package_map lives on the *newer* package (it maps each older predecessor
-# package's hash to the diff that upgrades a client from that predecessor to
-# this package). So this is polled against update B's UUID after B is uploaded,
-# not against update A.
+# Why not poll the package-detail API: the Release Management public packages
+# API does not expose diff_package_map, so there is no field to observe there.
+# The update_check endpoint is the same public acquisition endpoint the
+# @code-push-next SDK hits on device, so probing it with the predecessor's
+# package hash faithfully reproduces what the real client receives.
+#
+# Endpoint (from code-push acquisition-sdk):
+#   {serverUrl}/v0.1/public/codepush/update_check
+#     ?deployment_key=<key>&app_version=<ver>&package_hash=<hash>
+#     &is_companion=false&client_unique_id=<id>
+# It is authenticated by the opaque deployment_key only (no bearer token).
 #
 # Usage:
-#   poll_diff_package_map.sh <package_uuid> <deployment_id>
+#   poll_diff_package_map.sh <package_hash> <app_version>
+#
+# Inputs (positional or environment):
+#   $1 / CODEPUSH_PACKAGE_HASH  - package hash of the currently-installed update
+#                                 (update A); the value the client reports on its
+#                                 update check and the key the server diffs against
+#   $2 / CODEPUSH_APP_VERSION   - binary app version both updates target
 #
 # Required environment:
-#   CONNECTED_APP_ID     - connected app the deployment belongs to
-#   AUTHORIZATION_TOKEN  - Release Management API token (falls back to BITRISE_PAT)
+#   CODEPUSH_DEPLOYMENT_KEY     - opaque deployment key (the SDK's deployment_key).
+#                                 Falls back to CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE.
 #
 # Optional environment:
-#   RM_API_HOST           - API host (default https://api.bitrise.io)
-#   POLL_TIMEOUT_SECONDS  - total time to wait (default 60)
-#   POLL_INTERVAL_SECONDS - delay between attempts (default 5)
+#   CODEPUSH_SERVER_URL         - CodePush server base URL. Defaults to
+#                                 https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
+#   CODEPUSH_CLIENT_UNIQUE_ID   - client_unique_id query value (default diff-e2e-probe)
+#   POLL_TIMEOUT_SECONDS        - total time to wait (default 60)
+#   POLL_INTERVAL_SECONDS       - delay between attempts (default 5)
 #
 # Exit codes:
-#   0 - diff_package_map is non-null and non-empty
+#   0 - server returned a diff download URL (download_url contains "diff-")
 #   1 - timed out, bad arguments, or request failure
 
 set -u
 
-PACKAGE_UUID="${1:-${PACKAGE_UUID:-}}"
-DEPLOYMENT_ID="${2:-${DEPLOYMENT_ID:-}}"
-AUTHORIZATION_TOKEN="${AUTHORIZATION_TOKEN:-${BITRISE_PAT:-}}"
-RM_API_HOST="${RM_API_HOST:-https://api.bitrise.io}"
+PACKAGE_HASH="${1:-${CODEPUSH_PACKAGE_HASH:-}}"
+APP_VERSION="${2:-${CODEPUSH_APP_VERSION:-}}"
+DEPLOYMENT_KEY="${CODEPUSH_DEPLOYMENT_KEY:-${CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE:-}}"
+CLIENT_UNIQUE_ID="${CODEPUSH_CLIENT_UNIQUE_ID:-diff-e2e-probe}"
 POLL_TIMEOUT_SECONDS="${POLL_TIMEOUT_SECONDS:-60}"
 POLL_INTERVAL_SECONDS="${POLL_INTERVAL_SECONDS:-5}"
 
-if [ -z "$PACKAGE_UUID" ] || [ -z "$DEPLOYMENT_ID" ]; then
-  echo "ERROR: usage: poll_diff_package_map.sh <package_uuid> <deployment_id>" >&2
+SERVER_URL="${CODEPUSH_SERVER_URL:-}"
+if [ -z "$SERVER_URL" ] && [ -n "${BITRISE_WORKSPACE_ID:-}" ]; then
+  SERVER_URL="https://${BITRISE_WORKSPACE_ID}.codepush.bitrise.io"
+fi
+# Strip any trailing slash so the path joins cleanly.
+SERVER_URL="${SERVER_URL%/}"
+
+if [ -z "$PACKAGE_HASH" ] || [ -z "$APP_VERSION" ]; then
+  echo "ERROR: usage: poll_diff_package_map.sh <package_hash> <app_version>" >&2
   exit 1
 fi
 
-if [ -z "${CONNECTED_APP_ID:-}" ]; then
-  echo "ERROR: CONNECTED_APP_ID must be set in the environment" >&2
+if [ -z "$DEPLOYMENT_KEY" ]; then
+  echo "ERROR: CODEPUSH_DEPLOYMENT_KEY (or CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE) must be set" >&2
   exit 1
 fi
 
-if [ -z "$AUTHORIZATION_TOKEN" ]; then
-  echo "ERROR: AUTHORIZATION_TOKEN (or BITRISE_PAT) must be set in the environment" >&2
+if [ -z "$SERVER_URL" ]; then
+  echo "ERROR: CODEPUSH_SERVER_URL must be set, or BITRISE_WORKSPACE_ID must be available to derive it" >&2
   exit 1
 fi
 
@@ -55,39 +78,55 @@ if ! command -v jq > /dev/null 2>&1; then
   exit 1
 fi
 
-# Package-detail endpoint of the Release Management Public API, matching the
-# path shape used by upload_code_push_package.sh.
-URL="$RM_API_HOST/release-management/v1/connected-apps/$CONNECTED_APP_ID/code-push/deployments/$DEPLOYMENT_ID/packages/$PACKAGE_UUID"
+# URL-encode a string for safe use in a query value.
+urlencode() {
+  jq -rn --arg v "$1" '$v|@uri'
+}
 
-echo "Polling for a non-empty diff_package_map on package $PACKAGE_UUID"
-echo "  endpoint: $URL"
-echo "  timeout:  ${POLL_TIMEOUT_SECONDS}s, interval: ${POLL_INTERVAL_SECONDS}s"
+QUERY="deployment_key=$(urlencode "$DEPLOYMENT_KEY")"
+QUERY="$QUERY&app_version=$(urlencode "$APP_VERSION")"
+QUERY="$QUERY&package_hash=$(urlencode "$PACKAGE_HASH")"
+QUERY="$QUERY&is_companion=false"
+QUERY="$QUERY&client_unique_id=$(urlencode "$CLIENT_UNIQUE_ID")"
+
+URL="$SERVER_URL/v0.1/public/codepush/update_check?$QUERY"
+
+echo "Probing update_check for a diff download URL"
+echo "  server:       $SERVER_URL"
+echo "  app_version:  $APP_VERSION"
+echo "  package_hash: $PACKAGE_HASH"
+echo "  timeout:      ${POLL_TIMEOUT_SECONDS}s, interval: ${POLL_INTERVAL_SECONDS}s"
 
 elapsed=0
 body=""
+download_url=""
 while [ "$elapsed" -lt "$POLL_TIMEOUT_SECONDS" ]; do
-  response=$(curl -s -w "\n%{http_code}" -H "Authorization: $AUTHORIZATION_TOKEN" "$URL")
+  response=$(curl -s -w "\n%{http_code}" "$URL")
   http_code=$(echo "$response" | tail -1)
   body=$(echo "$response" | sed '$d')
 
   if [ "$http_code" = "200" ]; then
-    # Accept either snake_case or camelCase field naming from the API.
-    map=$(echo "$body" | jq -c '.diff_package_map // .diffPackageMap // empty' 2>/dev/null || true)
-    if [ -n "$map" ] && [ "$map" != "null" ] && [ "$map" != "{}" ]; then
-      echo "OK: diff_package_map is populated after ${elapsed}s: $map"
-      exit 0
-    fi
-    echo "Attempt @${elapsed}s: diff_package_map not ready yet (value: ${map:-<absent>}); retrying in ${POLL_INTERVAL_SECONDS}s..."
+    # download_url may appear as download_url (snake) or downloadURL (camel).
+    download_url=$(echo "$body" | jq -r '.update_info.download_url // .update_info.downloadURL // empty' 2>/dev/null || true)
+    case "$download_url" in
+      *diff-*)
+        echo "OK: server returned a diff download URL after ${elapsed}s:"
+        echo "  $download_url"
+        exit 0
+        ;;
+    esac
+    echo "Attempt @${elapsed}s: not a diff yet (download_url: ${download_url:-<none>}); retrying in ${POLL_INTERVAL_SECONDS}s..."
   else
-    echo "Attempt @${elapsed}s: API returned HTTP $http_code; retrying in ${POLL_INTERVAL_SECONDS}s..."
+    echo "Attempt @${elapsed}s: update_check returned HTTP $http_code; retrying in ${POLL_INTERVAL_SECONDS}s..."
   fi
 
   sleep "$POLL_INTERVAL_SECONDS"
   elapsed=$((elapsed + POLL_INTERVAL_SECONDS))
 done
 
-echo "ERROR: diff_package_map for package $PACKAGE_UUID did not become non-empty within ${POLL_TIMEOUT_SECONDS}s." >&2
-echo "This usually means bundle-diff generation did not run (diffing gate disabled for the workspace, package signed, or no eligible predecessor at the same app version)." >&2
+echo "ERROR: update_check did not return a diff download URL within ${POLL_TIMEOUT_SECONDS}s." >&2
+echo "Last download_url: ${download_url:-<none>}" >&2
+echo "This usually means bundle-diff generation did not run (diffing gate disabled for the workspace, package signed, or no eligible predecessor at the same app version) or the diff blob has not replicated to the routed backend yet." >&2
 echo "Last response body:" >&2
 echo "$body" >&2
 exit 1

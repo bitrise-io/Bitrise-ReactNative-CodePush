@@ -771,6 +771,32 @@ workflows:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_diff_build_binary
         - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_A
+    - script@1:
+        title: Resolve update A package hash
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            # The diff probe must report the exact package hash the client running
+            # update A would send on its update check. Prefer the package-detail
+            # API's key/hash field; if that is unavailable, fall back to the hash
+            # the app logs on launch (App.tsx logs "[CodePush] Package hash: ...").
+            HASH=""
+            RESP=$(curl -s -H "Authorization: $BITRISE_PAT" \
+              "https://api.bitrise.io/release-management/v1/connected-apps/$CONNECTED_APP_ID_IOS/code-push/deployments/$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE/packages/$CODEPUSH_PACKAGE_UUID_A" || true)
+            HASH=$(echo "$RESP" | jq -r '.key // .packageHash // .package_hash // .hash // empty' 2>/dev/null || true)
+            if [ -n "$HASH" ] && [ "$HASH" != "null" ]; then
+              echo "Resolved update A package hash from the package API: $HASH"
+            else
+              echo "Package API did not return a hash; falling back to the simulator log."
+              if [ -f /tmp/codepush_simulator_log.txt ]; then
+                HASH=$(grep -oE "\[CodePush\] Package hash: [A-Za-z0-9+/=._-]+" /tmp/codepush_simulator_log.txt \
+                  | tail -1 | sed -E 's/.*Package hash: //' || true)
+              fi
+              [ -n "$HASH" ] && echo "Resolved update A package hash from the simulator log: $HASH"
+            fi
+            [ -n "$HASH" ] || (echo "ERROR: could not determine update A package hash (needed to probe update_check for a diff)" && exit 1)
+            envman add --key CODEPUSH_PACKAGE_HASH_A --value "$HASH"
     # --- Phase B: push update B at the SAME app version (no version bump) ---
     - bundle::codepush_js_prepare:
         inputs:
@@ -793,18 +819,20 @@ workflows:
             envman add --key CODEPUSH_PACKAGE_UUID_B --value "$CODEPUSH_PACKAGE_UUID"
             echo "Update B package UUID: $CODEPUSH_PACKAGE_UUID"
     - script@1:
-        title: Wait for update B diff_package_map to be generated
+        title: Wait until update_check serves a diff for update A
         inputs:
         - content: |-
             #!/usr/bin/env bash
             set -e
             # The upload step already blocked until B reached processed_valid.
-            # Now wait until the server has generated B's diff against A.
-            CONNECTED_APP_ID="$CONNECTED_APP_ID_IOS" \
-            AUTHORIZATION_TOKEN="$BITRISE_PAT" \
+            # Probe the public update_check endpoint as a client running update A
+            # and wait until the server answers with a diff download URL (proving
+            # B's diff against A has been generated and is being served). The
+            # script derives the deployment_key from CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
+            # and the server URL from BITRISE_WORKSPACE_ID.
             POLL_TIMEOUT_SECONDS=60 \
             POLL_INTERVAL_SECONDS=5 \
-            /bin/bash ./scripts/codepush/poll_diff_package_map.sh "$CODEPUSH_PACKAGE_UUID_B" "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE"
+            /bin/bash ./scripts/codepush/poll_diff_package_map.sh "$CODEPUSH_PACKAGE_HASH_A" "$CODEPUSH_APP_VERSION"
     - bundle::setup_maestro: {}
     - script@1:
         title: Start simulator log capture for diff verification
