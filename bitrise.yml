@@ -841,9 +841,14 @@ workflows:
             #!/usr/bin/env bash
             set -e
             rm -f /tmp/codepush-sim-log.txt
-            # Same process-name predicate the verify_codepush bundle uses.
-            xcrun simctl spawn booted log stream --level debug \
-              --predicate 'process == "BitriseReactNativeCodePush"' \
+            # Filter on the message text, not the process name. The SDK logs via
+            # CPLog -> NSLog with a "[CodePush] " prefix (CodePushUtils.m), so an
+            # eventMessage predicate reliably captures every SDK line regardless
+            # of how the log subsystem attributes the process. This mirrors the
+            # 'eventMessage contains[cd] "CodePush"' predicate the signed/unsigned
+            # negative tests already rely on.
+            xcrun simctl spawn booted log stream \
+              --predicate 'eventMessage contains[cd] "CodePush"' \
               > /tmp/codepush-sim-log.txt 2>&1 &
             DIFF_LOG_PID=$!
             envman add --key DIFF_LOG_PID --value "$DIFF_LOG_PID"
@@ -857,17 +862,20 @@ workflows:
             set -x
             # The SDK still has update A applied and reports A's hash on this
             # check, so the server answers with a diff URL. With
-            # InstallMode.ON_NEXT_RESTART the diff is downloaded now and applied
-            # on the next launch (performed by the Maestro test below).
+            # InstallMode.ON_NEXT_RESTART the diff is downloaded and merged now
+            # and applied on the next launch (performed by the Maestro test below).
+            # During the download the SDK logs "[CodePush] Applying diff update."
+            # (or "Applying full update.") followed by the integrity/signing
+            # checks (CodePushPackage.m) — wait for any of those to appear.
             xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
-            echo "Waiting for the CodePush update check / diff download to complete..."
-            timeout 90 bash -c '
+            echo "Waiting for the CodePush update download / diff merge to complete..."
+            timeout 120 bash -c '
               until grep -qi \
-                "hotcodepush\|deletedFiles\|diff-\|update.*download\|up.to.date\|no update\|codepush.*error" \
+                "Applying diff update\|Applying full update\|integrity check\|code signing check\|no update available\|codepush.*error" \
                 /tmp/codepush-sim-log.txt 2>/dev/null; do
                 sleep 2
               done
-            ' || echo "WARNING: CodePush check/download completion not detected within 90s — continuing"
+            ' || echo "WARNING: CodePush download/merge completion not detected within 120s — continuing"
             xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush || true
             sleep 1
     - script@1:
@@ -895,19 +903,29 @@ workflows:
             #!/usr/bin/env bash
             set -e
             LOG=/tmp/codepush-sim-log.txt
+            # Also pull the SDK's logs straight from the unified log store, in
+            # case the live stream missed anything. Same retrieval the negative
+            # tests use to assert SDK behavior.
+            xcrun simctl spawn booted log show \
+              --predicate 'eventMessage contains[cd] "CodePush"' \
+              --last 15m >> "$LOG" 2>/dev/null || true
             [ -s "$LOG" ] || (echo "ERROR: simulator log is empty or missing" && exit 1)
             echo "=== Searching simulator log for diff evidence ==="
-            # A served diff always ships hotcodepush.json (with a deletedFiles
-            # array) and is fetched from a diff-<predecessorHash>.zip URL. A full
-            # package shows none of these. Finding any of them proves a diff was
-            # served rather than the full package.
-            if grep -Ei "hotcodepush|deletedFiles|diff-[0-9a-f]" "$LOG"; then
-              echo "OK: diff evidence found — the server served a bundle diff, not the full package."
+            # When the SDK applies a downloaded update it logs exactly one of
+            # (CodePushPackage.m, via CPLog):
+            #   [CodePush] Applying diff update.   -> a bundle diff was served
+            #   [CodePush] Applying full update.   -> the full package was served
+            # That line is the authoritative diff-vs-full signal.
+            if grep -Eiq "Applying diff update" "$LOG"; then
+              echo "OK: '[CodePush] Applying diff update.' found — the server served a bundle diff, not the full package."
+              grep -Ei "Applying diff update" "$LOG" | head -5
             else
-              echo "ERROR: no diff evidence (hotcodepush.json / deletedFiles / diff- URL) found in the simulator log."
-              echo "Update B was most likely served as a FULL package instead of a diff."
-              echo "=== last 200 simulator log lines ==="
-              tail -200 "$LOG" || true
+              echo "ERROR: '[CodePush] Applying diff update.' was not found in the simulator log."
+              if grep -Eiq "Applying full update" "$LOG"; then
+                echo "Found '[CodePush] Applying full update.' instead — update B was served as a FULL package, not a diff."
+              fi
+              echo "=== CodePush log lines ==="
+              grep -Ei "codepush" "$LOG" | tail -200 || true
               exit 1
             fi
     - bundle::notify_slack_on_failure:
