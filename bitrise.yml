@@ -697,6 +697,195 @@ workflows:
         inputs:
         - PRETEXT: ":rotating_light: *[Bare RN] CodePush E2E negative test failed*"
         - MESSAGE: "Possible issue: SDK did NOT reject the unsigned update as expected. The app may have applied an unsigned update despite signature enforcement being enabled. — Logs: $BITRISE_BUILD_URL"
+  codepush_diff_build_binary:
+    summary: Build the unsigned simulator binary used by the bundle-diff E2E test.
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    - bundle::fetch_source: {}
+    - script@1:
+        title: Read CodePush app version for diff test
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            # Both updates (A and B) in the diff test must target this exact
+            # app version, so it is read once here and shared with the test
+            # stage as a pipeline variable. It is intentionally NOT bumped:
+            # keeping A and B on the same app version is what makes B a valid
+            # diff target for a client running A.
+            VERSION=$(node -p "require('./codepush-diff-version.json').version")
+            [ -n "$VERSION" ] || (echo "ERROR: could not read version from codepush-diff-version.json" && exit 1)
+            envman add --key CODEPUSH_APP_VERSION --value "$VERSION"
+            echo "Bundle-diff app version: $VERSION"
+    - bundle::build_binary_simulator:
+        inputs:
+        - APP_VERSION: $CODEPUSH_APP_VERSION
+    - share-pipeline-variable@1.1.0:
+        inputs:
+        - variables: CODEPUSH_APP_VERSION
+  codepush_diff_test:
+    summary: Two-phase bundle-diff E2E test — install update A, then verify update B is served as a diff.
+    description: |-
+      Runs both phases on a single machine because the simulator state (the
+      installed package A and the hash the SDK reports on the next update
+      check) must persist between phases and cannot survive a pipeline-stage
+      boundary.
+
+      Phase A: push update A (unsigned), install the binary, let the SDK
+      download and apply A, and assert marker A is visible.
+      Phase B: push update B at the SAME app version, wait until the server
+      has generated B's diff_package_map, then launch the app so a client on
+      A receives a diff. Assert marker B is visible AND that the simulator log
+      shows the diff was served (hotcodepush.json / diff- URL) rather than a
+      full package.
+    meta:
+      bitrise.io:
+        stack: osx-xcode-16.0.x
+        machine_type_id: g2.mac.medium
+    steps:
+    # --- Phase A: push update A and let the SDK install it ---
+    - bundle::codepush_js_prepare:
+        inputs:
+        - APP_VERSION: $CODEPUSH_APP_VERSION
+    - bundle::generate_codepush_marker:
+        inputs:
+        - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_A
+    - bundle::rn_export_and_upload:
+        inputs:
+        - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
+        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
+        - DESCRIPTION: "E2E bundle diff test - update A - marker: $CODEPUSH_UPDATE_MARKER_A"
+    - script@1:
+        title: Save update A package UUID
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            [ -n "$CODEPUSH_PACKAGE_UUID" ] || (echo "ERROR: upload did not export CODEPUSH_PACKAGE_UUID" && exit 1)
+            envman add --key CODEPUSH_PACKAGE_UUID_A --value "$CODEPUSH_PACKAGE_UUID"
+            echo "Update A package UUID: $CODEPUSH_PACKAGE_UUID"
+    - bundle::verify_codepush:
+        inputs:
+        - ARTIFACT_SOURCE_WORKFLOW: codepush_diff_build_binary
+        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_A
+    # --- Phase B: push update B at the SAME app version (no version bump) ---
+    - bundle::codepush_js_prepare:
+        inputs:
+        - APP_VERSION: $CODEPUSH_APP_VERSION
+    - bundle::generate_codepush_marker:
+        inputs:
+        - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_B
+    - bundle::rn_export_and_upload:
+        inputs:
+        - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
+        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
+        - DESCRIPTION: "E2E bundle diff test - update B - marker: $CODEPUSH_UPDATE_MARKER_B"
+    - script@1:
+        title: Save update B package UUID
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            [ -n "$CODEPUSH_PACKAGE_UUID" ] || (echo "ERROR: upload did not export CODEPUSH_PACKAGE_UUID" && exit 1)
+            envman add --key CODEPUSH_PACKAGE_UUID_B --value "$CODEPUSH_PACKAGE_UUID"
+            echo "Update B package UUID: $CODEPUSH_PACKAGE_UUID"
+    - script@1:
+        title: Wait for update B diff_package_map to be generated
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            # The upload step already blocked until B reached processed_valid.
+            # Now wait until the server has generated B's diff against A.
+            CONNECTED_APP_ID="$CONNECTED_APP_ID_IOS" \
+            AUTHORIZATION_TOKEN="$BITRISE_PAT" \
+            POLL_TIMEOUT_SECONDS=60 \
+            POLL_INTERVAL_SECONDS=5 \
+            /bin/bash ./scripts/codepush/poll_diff_package_map.sh "$CODEPUSH_PACKAGE_UUID_B" "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE"
+    - bundle::setup_maestro: {}
+    - script@1:
+        title: Start simulator log capture for diff verification
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            rm -f /tmp/codepush-sim-log.txt
+            # Same process-name predicate the verify_codepush bundle uses.
+            xcrun simctl spawn booted log stream --level debug \
+              --predicate 'process == "BitriseReactNativeCodePush"' \
+              > /tmp/codepush-sim-log.txt 2>&1 &
+            DIFF_LOG_PID=$!
+            envman add --key DIFF_LOG_PID --value "$DIFF_LOG_PID"
+            echo "Diff log capture PID: $DIFF_LOG_PID"
+    - script@1:
+        title: Warm-up launch to trigger the diff download
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -x
+            # The SDK still has update A applied and reports A's hash on this
+            # check, so the server answers with a diff URL. With
+            # InstallMode.ON_NEXT_RESTART the diff is downloaded now and applied
+            # on the next launch (performed by the Maestro test below).
+            xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
+            echo "Waiting for the CodePush update check / diff download to complete..."
+            timeout 90 bash -c '
+              until grep -qi \
+                "hotcodepush\|deletedFiles\|diff-\|update.*download\|up.to.date\|no update\|codepush.*error" \
+                /tmp/codepush-sim-log.txt 2>/dev/null; do
+                sleep 2
+              done
+            ' || echo "WARNING: CodePush check/download completion not detected within 90s — continuing"
+            xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush || true
+            sleep 1
+    - script@1:
+        title: Run Maestro test asserting update B marker
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            set -o pipefail
+            maestro test -e CODEPUSH_UPDATE_MARKER="$CODEPUSH_UPDATE_MARKER_B" --format junit .maestro/codepush_update_test.yaml
+    - script@1:
+        title: Stop simulator log capture
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            if [ -n "$DIFF_LOG_PID" ]; then
+              kill "$DIFF_LOG_PID" 2>/dev/null || true
+              sleep 1
+            fi
+    - script@1:
+        title: Assert a diff (not a full package) was served
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            LOG=/tmp/codepush-sim-log.txt
+            [ -s "$LOG" ] || (echo "ERROR: simulator log is empty or missing" && exit 1)
+            echo "=== Searching simulator log for diff evidence ==="
+            # A served diff always ships hotcodepush.json (with a deletedFiles
+            # array) and is fetched from a diff-<predecessorHash>.zip URL. A full
+            # package shows none of these. Finding any of them proves a diff was
+            # served rather than the full package.
+            if grep -Ei "hotcodepush|deletedFiles|diff-[0-9a-f]" "$LOG"; then
+              echo "OK: diff evidence found — the server served a bundle diff, not the full package."
+            else
+              echo "ERROR: no diff evidence (hotcodepush.json / deletedFiles / diff- URL) found in the simulator log."
+              echo "Update B was most likely served as a FULL package instead of a diff."
+              echo "=== last 200 simulator log lines ==="
+              tail -200 "$LOG" || true
+              exit 1
+            fi
+    - bundle::notify_slack_on_failure:
+        inputs:
+        - PRETEXT: ":rotating_light: *[Bare RN] CodePush E2E bundle diff test failed*"
+        - MESSAGE: "Possible issue: a bundle diff was not generated or not served. Either update B never received a diff_package_map (diff generation off / gate disabled / no eligible predecessor at the same app version) or the SDK downloaded the full package instead of the diff. — Logs: $BITRISE_BUILD_URL"
 app:
   envs:
   - BITRISE_PROJECT_PATH: ios/BitriseReactNativeCodePush.xcworkspace
@@ -1302,6 +1491,14 @@ pipelines:
         depends_on:
         - codepush_build_binary_unsigned
         - codepush_cli_unsigned_upload
+  codepush_e2e_bundle_diff_pipeline:
+    workflows:
+      codepush_diff_build_binary:
+        abort_on_fail: true
+      codepush_diff_test:
+        abort_on_fail: true
+        depends_on:
+        - codepush_diff_build_binary
   codepush_e2e_nightly_pipeline:
     workflows:
       codepush_validate_pat:
@@ -1391,6 +1588,14 @@ pipelines:
         depends_on:
         - codepush_build_binary_unsigned
         - codepush_cli_unsigned_upload
+      codepush_diff_build_binary:
+        abort_on_fail: false
+        depends_on:
+        - codepush_validate_pat
+      codepush_diff_test:
+        abort_on_fail: false
+        depends_on:
+        - codepush_diff_build_binary
 meta:
   bitrise.io:
     stack: osx-xcode-16.0.x
