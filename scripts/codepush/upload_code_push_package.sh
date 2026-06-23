@@ -201,6 +201,13 @@ check_dependencies
 uuid=$(openssl rand -hex 16)
 package_id=${uuid:0:8}-${uuid:8:4}-${uuid:12:4}-${uuid:16:4}-${uuid:20:12}
 
+# Expose the generated package UUID to the Bitrise workflow so later steps
+# (e.g. polling the package for its diff_package_map) can reference it.
+# Guarded so the script still runs standalone outside Bitrise.
+if command -v envman > /dev/null 2>&1; then
+  envman add --key CODEPUSH_PACKAGE_UUID --value "$package_id"
+fi
+
 if [ -z "$RM_API_HOST" ]; then
   RM_API_HOST="https://api.bitrise.io"
 fi
