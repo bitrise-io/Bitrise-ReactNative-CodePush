@@ -662,6 +662,12 @@ workflows:
         - content: |-
             #!/usr/bin/env bash
             set -e
+            # Ensure the app is not running so the subsequent launch is a cold
+            # start that triggers ON_APP_START and therefore the CodePush
+            # check_update. Phase A's verify_codepush may have left the app
+            # running, in which case a plain launch would only foreground it
+            # (no ON_APP_START, no download) and the staging wait would time out.
+            xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush 2>/dev/null || true
             # Launch the app so the SDK checks for and downloads update B.
             # With ON_NEXT_RESTART, the SDK stages the update without restarting.
             # We wait for the definitive JS log that fires when staging is complete:
