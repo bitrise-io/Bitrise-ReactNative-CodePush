@@ -523,6 +523,9 @@ workflows:
     - bundle::build_binary_simulator:
         inputs:
         - APP_VERSION: $CODEPUSH_APP_VERSION
+        # Bake the prod deployment key in so this binary checks the prod
+        # deployment, isolating the diff test from the staging-bound chains.
+        - DEPLOYMENT_KEY: $CODE_PUSH_DEPLOYMENT_KEY_IOS_PROD
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_APP_VERSION
@@ -556,7 +559,7 @@ workflows:
     - bundle::rn_export_and_upload:
         inputs:
         - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
-        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
+        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_PROD
         - DESCRIPTION: "E2E bundle diff test - update A - marker: $CODEPUSH_UPDATE_MARKER_A"
     - bundle::save_package_uuid:
         inputs:
@@ -577,7 +580,7 @@ workflows:
             # the app logs on launch (App.tsx logs "[CodePush] Package hash: ...").
             HASH=""
             RESP=$(curl -s -H "Authorization: $BITRISE_PAT" \
-              "https://api.bitrise.io/release-management/v1/connected-apps/$CONNECTED_APP_ID_IOS/code-push/deployments/$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE/packages/$CODEPUSH_PACKAGE_UUID_A" || true)
+              "https://api.bitrise.io/release-management/v1/connected-apps/$CONNECTED_APP_ID_IOS/code-push/deployments/$CODE_PUSH_DEPLOYMENT_ID_IOS_PROD/packages/$CODEPUSH_PACKAGE_UUID_A" || true)
             HASH=$(echo "$RESP" | jq -r '.key // .packageHash // .package_hash // .hash // empty' 2>/dev/null || true)
             if [ -n "$HASH" ] && [ "$HASH" != "null" ]; then
               echo "Resolved update A package hash from the package API: $HASH"
@@ -601,7 +604,7 @@ workflows:
     - bundle::rn_export_and_upload:
         inputs:
         - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
-        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
+        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_PROD
         - DESCRIPTION: "E2E bundle diff test - update B - marker: $CODEPUSH_UPDATE_MARKER_B"
     - bundle::save_package_uuid:
         inputs:
@@ -616,8 +619,10 @@ workflows:
             # Probe the public update_check endpoint as a client running update A
             # and wait until the server answers with a diff download URL (proving
             # B's diff against A has been generated and is being served). The
-            # script derives the deployment_key from CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
-            # and the server URL from BITRISE_WORKSPACE_ID.
+            # script reads the deployment_key from CODEPUSH_DEPLOYMENT_KEY (set
+            # here to the prod deployment key so the probe matches the binary's
+            # baked-in key) and the server URL from BITRISE_WORKSPACE_ID.
+            CODEPUSH_DEPLOYMENT_KEY="$CODE_PUSH_DEPLOYMENT_KEY_IOS_PROD" \
             POLL_TIMEOUT_SECONDS=60 \
             POLL_INTERVAL_SECONDS=5 \
             /bin/bash ./scripts/codepush/poll_diff_package_map.sh "$CODEPUSH_PACKAGE_HASH_A" "$CODEPUSH_APP_VERSION"
@@ -862,6 +867,11 @@ step_bundles:
   build_binary_simulator:
     inputs:
     - APP_VERSION: ""
+    # Deployment key baked into the simulator binary (the deployment the running
+    # app checks for updates against). Defaults to staging so every existing
+    # chain is unaffected; the bundle-diff workflows override this to prod so
+    # they are isolated from the other nightly chains that share staging.
+    - DEPLOYMENT_KEY: $CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
     steps:
     - bundle::fetch_source: {}
     - bundle::apply_bumped_version:
@@ -905,7 +915,7 @@ step_bundles:
             CODE_SIGNING_REQUIRED=NO
             CODE_SIGNING_ALLOWED=NO
             MARKETING_VERSION=$APP_VERSION
-            CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
+            CODEPUSH_KEY=$DEPLOYMENT_KEY
             CODEPUSH_SERVER_URL=https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
     - script@1:
         title: Zip .app binary
