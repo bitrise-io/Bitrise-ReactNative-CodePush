@@ -657,6 +657,30 @@ workflows:
             envman add --key DIFF_LOG_PID --value "$DIFF_LOG_PID"
             echo "Diff log capture PID: $DIFF_LOG_PID"
     - script@1:
+        title: Warm-up launch to trigger update B download
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            # Launch the app so the SDK checks for and downloads update B.
+            # With ON_NEXT_RESTART, the SDK stages the update without restarting.
+            # We wait for the definitive JS log that fires when staging is complete:
+            # "[CodePush] Update is installed and will be run on the next app restart."
+            # This is emitted by CodePush.js syncInternal after install() returns
+            # with ON_NEXT_RESTART mode — it is the exact signal that download and
+            # staging have finished. The log is captured by the existing
+            # /tmp/codepush-sim-log.txt stream (predicate: eventMessage contains "CodePush").
+            xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
+            echo "Waiting for CodePush to finish downloading and staging update B..."
+            timeout 60 bash -c '
+              until grep -q "Update is installed and will be run on the next app restart" \
+                /tmp/codepush-sim-log.txt 2>/dev/null; do
+                sleep 2
+              done
+            ' || echo "WARNING: staging-complete signal not detected within 60s — continuing"
+            xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush || true
+            sleep 1
+    - script@1:
         title: Run Maestro test asserting update B marker
         inputs:
         - content: |-

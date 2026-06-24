@@ -279,11 +279,13 @@ const styles = StyleSheet.create({
 // CodePush configuration
 const codePushOptions = {
   checkFrequency: codePush.CheckFrequency.ON_APP_START,
-  // IMMEDIATE: the SDK restarts the app itself as soon as the update is
-  // downloaded and staged, so the diff E2E test needs no warm-up step —
-  // Maestro's first launchApp triggers the download + auto-restart and the
-  // update applies within the same Maestro session.
-  installMode: codePush.InstallMode.IMMEDIATE,
+  // ON_NEXT_RESTART: stage downloaded updates without auto-restarting.
+  // IMMEDIATE was tried but it makes the ui_test smoke test flaky — IMMEDIATE
+  // applies any pending update on every launch, so the welcome text the smoke
+  // test asserts can be replaced before Maestro sees it. The bundle-diff test
+  // instead uses an explicit warm-up launch that waits for the SDK's
+  // staging-complete log before terminating.
+  installMode: codePush.InstallMode.ON_NEXT_RESTART,
   mandatoryInstallMode: codePush.InstallMode.ON_NEXT_RESTART,
 };
 
