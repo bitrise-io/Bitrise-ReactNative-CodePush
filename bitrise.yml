@@ -670,16 +670,20 @@ workflows:
             # with ON_NEXT_RESTART mode — it is the exact signal that download and
             # staging have finished. The log is captured by the existing
             # /tmp/codepush-sim-log.txt stream (predicate: eventMessage contains "CodePush").
-            # Emit a sentinel log entry and wait for it to appear in the capture
-            # file. This confirms the log stream (started in the previous step)
-            # is live before launching the app — avoids the 1-3s stream startup
-            # window where the SDK staging-complete log would otherwise be missed.
-            xcrun simctl spawn booted logger "CodePushStreamReadySentinel"
+            # Probe readiness with a SECOND, unfiltered log stream: `logger` is
+            # not available in the iOS simulator runtime, so we cannot emit our
+            # own sentinel line. An unfiltered stream outputs immediately since
+            # system logs always flow; once /tmp/log-stream-ready.txt is non-empty
+            # both this probe stream and the filtered capture stream are live.
+            xcrun simctl spawn booted log stream \
+              > /tmp/log-stream-ready.txt 2>&1 &
+            READY_PID=$!
             timeout 15 bash -c '
-              until grep -q "CodePushStreamReadySentinel" /tmp/codepush-sim-log.txt 2>/dev/null; do
-                sleep 0.3
+              until [ -s /tmp/log-stream-ready.txt ]; do
+                sleep 0.2
               done
             ' && echo "Log stream confirmed live" || echo "WARNING: stream init probe timed out — continuing"
+            kill "$READY_PID" 2>/dev/null || true
             xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
             echo "Waiting for CodePush to finish downloading and staging update B..."
             timeout 60 bash -c '
