@@ -279,7 +279,11 @@ const styles = StyleSheet.create({
 // CodePush configuration
 const codePushOptions = {
   checkFrequency: codePush.CheckFrequency.ON_APP_START,
-  installMode: codePush.InstallMode.ON_NEXT_RESTART,
+  // IMMEDIATE: the SDK restarts the app itself as soon as the update is
+  // downloaded and staged, so the diff E2E test needs no warm-up step —
+  // Maestro's first launchApp triggers the download + auto-restart and the
+  // update applies within the same Maestro session.
+  installMode: codePush.InstallMode.IMMEDIATE,
   mandatoryInstallMode: codePush.InstallMode.ON_NEXT_RESTART,
 };
 
