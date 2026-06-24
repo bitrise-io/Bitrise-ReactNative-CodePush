@@ -668,14 +668,6 @@ workflows:
             # running, in which case a plain launch would only foreground it
             # (no ON_APP_START, no download) and the staging wait would time out.
             xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush 2>/dev/null || true
-            # Launch the app so the SDK checks for and downloads update B.
-            # With ON_NEXT_RESTART, the SDK stages the update without restarting.
-            # We wait for the definitive JS log that fires when staging is complete:
-            # "[CodePush] Update is installed and will be run on the next app restart."
-            # This is emitted by CodePush.js syncInternal after install() returns
-            # with ON_NEXT_RESTART mode — it is the exact signal that download and
-            # staging have finished. The log is captured by the existing
-            # /tmp/codepush-sim-log.txt stream (predicate: eventMessage contains "CodePush").
             # Probe readiness with a SECOND, unfiltered log stream: `logger` is
             # not available in the iOS simulator runtime, so we cannot emit our
             # own sentinel line. An unfiltered stream outputs immediately since
@@ -690,15 +682,43 @@ workflows:
               done
             ' && echo "Log stream confirmed live" || echo "WARNING: stream init probe timed out — continuing"
             kill "$READY_PID" 2>/dev/null || true
-            xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
-            echo "Waiting for CodePush to finish downloading and staging update B..."
-            timeout 60 bash -c '
-              until grep -q "Update is installed and will be run on the next app restart" \
-                /tmp/codepush-sim-log.txt 2>/dev/null; do
-                sleep 2
+            # Wait for the update to download + stage by watching CodePush's
+            # on-disk state, not a JS log: the console.log "Update is installed..."
+            # never reaches the simulator system log, so a log-grep always timed
+            # out. CodePush stages each package under
+            # <data_container>/Library/Application Support/CodePush/ — a new
+            # <packageHash> subdirectory (and an updated codepush.json) appears
+            # when staging completes. Snapshot that directory, launch, and poll
+            # for any change. (Listings are compared directly rather than via
+            # md5sum, which is not present on the macOS stack.)
+            DATA_DIR=$(xcrun simctl get_app_container booted org.reactjs.native.example.BitriseReactNativeCodePush data 2>/dev/null || true)
+            CODEPUSH_DIR="$DATA_DIR/Library/Application Support/CodePush"
+
+            staging_wait() {
+              local before after elapsed
+              before=$(ls -1A "$CODEPUSH_DIR" 2>/dev/null | sort || true)
+              xcrun simctl launch booted org.reactjs.native.example.BitriseReactNativeCodePush
+              elapsed=0
+              while [ "$elapsed" -lt 90 ]; do
+                sleep 5
+                elapsed=$((elapsed + 5))
+                after=$(ls -1A "$CODEPUSH_DIR" 2>/dev/null | sort || true)
+                if [ "$before" != "$after" ]; then
+                  echo "OK: CodePush staging directory changed after ${elapsed}s — staging confirmed"
+                  return 0
+                fi
               done
-            ' || echo "WARNING: staging-complete signal not detected within 60s — continuing"
-            xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush || true
+              echo "WARNING: no CodePush staging change detected after 90s"
+              return 1
+            }
+
+            if ! staging_wait; then
+              echo "Retrying with a second warm-up launch..."
+              xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush 2>/dev/null || true
+              sleep 2
+              staging_wait || true
+            fi
+            xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush 2>/dev/null || true
             sleep 1
     - script@1:
         title: Run Maestro test asserting update B marker
