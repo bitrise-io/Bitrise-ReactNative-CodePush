@@ -1068,9 +1068,9 @@ step_bundles:
             envman add --key "$MARKER_ENV_KEY" --value "$MARKER"
             envman add --key CODEPUSH_UPDATED_AT --value "$UPDATED_AT"
     - generate-text-file@0:
-        title: Write codepush-update-meta.json
+        title: Write codepush-update-meta.data
         inputs:
-        - file_name: codepush-update-meta.json
+        - file_name: codepush-update-meta.data
         - file_content: |-
             {
               "version": "$NEW_APP_VERSION",
