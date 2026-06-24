@@ -24,7 +24,16 @@
 # Inputs (positional or environment):
 #   $1 / CODEPUSH_PACKAGE_HASH  - package hash of the currently-installed update
 #                                 (update A); the value the client reports on its
-#                                 update check and the key the server diffs against
+#                                 update check and the key the server diffs against.
+#                                 IMPORTANT: this MUST be update A's CodePush
+#                                 MANIFEST hash -- i.e. the update_info.package_hash
+#                                 returned by the update_check endpoint, which is
+#                                 exactly what the SDK reports on its own checks and
+#                                 what diff_package_map is keyed by. Do NOT pass the
+#                                 package detail REST API's `hash` field: that is the
+#                                 zip-file SHA256 (a different algorithm) and never
+#                                 equals a diff_package_map key, so the probe would
+#                                 always be served the full package instead of a diff.
 #   $2 / CODEPUSH_APP_VERSION   - binary app version both updates target
 #
 # Required environment:

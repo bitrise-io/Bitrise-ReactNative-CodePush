@@ -566,30 +566,45 @@ workflows:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_diff_build_binary
         - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_A
     - script@1:
-        title: Resolve update A package hash
+        title: Resolve update A manifest hash (via update_check)
         inputs:
         - content: |-
             #!/usr/bin/env bash
             set -e
-            # The diff probe must report the exact package hash the client running
-            # update A would send on its update check. Prefer the package-detail
-            # API's key/hash field; if that is unavailable, fall back to the hash
-            # the app logs on launch (App.tsx logs "[CodePush] Package hash: ...").
-            HASH=""
-            RESP=$(curl -s -H "Authorization: $BITRISE_PAT" \
-              "https://api.bitrise.io/release-management/v1/connected-apps/$CONNECTED_APP_ID_IOS/code-push/deployments/$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE/packages/$CODEPUSH_PACKAGE_UUID_A" || true)
-            HASH=$(echo "$RESP" | jq -r '.key // .packageHash // .package_hash // .hash // empty' 2>/dev/null || true)
+
+            # Resolve update A's CodePush MANIFEST hash by calling update_check as a
+            # fresh client (no package_hash) after Phase A. The server returns update A
+            # as the latest package, and update_info.package_hash IS the manifest hash
+            # the SDK sends on subsequent checks -- the same key used in diff_package_map.
+            # The package detail API's `hash` field is the zip-file SHA256, which is NOT
+            # the manifest hash, so it MUST NOT be used here.
+
+            DEPLOYMENT_KEY="${CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE}"
+            SERVER_URL="https://${BITRISE_WORKSPACE_ID}.codepush.bitrise.io"
+            QUERY="deployment_key=$(jq -rn --arg v "$DEPLOYMENT_KEY" '$v|@uri')&app_version=6.0.0&package_hash=&client_unique_id=diff-resolve-$(date +%s)&is_companion=false"
+            URL="${SERVER_URL}/v0.1/public/codepush/update_check?${QUERY}"
+
+            echo "Resolving update A manifest hash via update_check..."
+            RESP=$(curl -s -w "\n%{http_code}" "$URL")
+            HTTP_CODE=$(echo "$RESP" | tail -1)
+            BODY=$(echo "$RESP" | sed '$d')
+            [ "$HTTP_CODE" = "200" ] || (echo "ERROR: update_check returned HTTP $HTTP_CODE: $BODY" && exit 1)
+
+            HASH=$(echo "$BODY" | jq -r '.update_info.package_hash // empty' 2>/dev/null || true)
+
             if [ -n "$HASH" ] && [ "$HASH" != "null" ]; then
-              echo "Resolved update A package hash from the package API: $HASH"
+              echo "Resolved update A manifest hash from update_check: $HASH"
             else
-              echo "Package API did not return a hash; falling back to the simulator log."
+              # Fallback: read from the simulator log (App.tsx logs "[CodePush] Package hash: X" on mount)
+              echo "update_check gave no hash; falling back to simulator log"
               if [ -f /tmp/codepush_simulator_log.txt ]; then
                 HASH=$(grep -oE "\[CodePush\] Package hash: [A-Za-z0-9+/=._-]+" /tmp/codepush_simulator_log.txt \
                   | tail -1 | sed -E 's/.*Package hash: //' || true)
               fi
-              [ -n "$HASH" ] && echo "Resolved update A package hash from the simulator log: $HASH"
+              [ -n "$HASH" ] && echo "Resolved update A manifest hash from simulator log: $HASH"
             fi
-            [ -n "$HASH" ] || (echo "ERROR: could not determine update A package hash (needed to probe update_check for a diff)" && exit 1)
+
+            [ -n "$HASH" ] || (echo "ERROR: could not determine update A manifest hash" && exit 1)
             envman add --key CODEPUSH_PACKAGE_HASH_A --value "$HASH"
     # --- Phase B: push update B at the SAME app version (no version bump) ---
     - bundle::codepush_js_prepare:
