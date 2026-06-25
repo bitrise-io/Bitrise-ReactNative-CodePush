@@ -569,30 +569,37 @@ workflows:
         title: 'Diagnose: dump SDK package_hash after Phase A staging'
         inputs:
         - content: |-
-            #!/usr/bin/env bash
             set -euo pipefail
-            echo "=== CodePush staged packages after Phase A ==="
-            CODEPUSH_DIR="$HOME/Library/Developer/CoreSimulator/Devices/$(xcrun simctl list devices booted -j | python3 -c "import sys,json; d=json.load(sys.stdin); print(next(v[0]['udid'] for v in d['devices'].values() if v and v[0].get('state')=='Booted'))")/data/Containers/Data/Application"
+            echo "=== CodePush SDK state after Phase A ==="
 
-            # Find the app's CodePush directory
-            PACKAGE_JSON=$(find "$CODEPUSH_DIR" -path "*/CodePush/*/package.json" 2>/dev/null | head -5)
-            if [ -z "$PACKAGE_JSON" ]; then
-              echo "No CodePush package.json found"
-            else
-              for f in $PACKAGE_JSON; do
-                echo "--- $f ---"
-                cat "$f"
-                echo ""
-              done
-            fi
+            BOOTED_UDID=$(xcrun simctl list devices booted -j | python3 -c "
+            import sys, json
+            d = json.load(sys.stdin)
+            udid = next((v[0]['udid'] for v in d['devices'].values() if v and v[0].get('state') == 'Booted'), None)
+            print(udid or 'NOT_FOUND')
+            ")
+            echo "Booted simulator UDID: $BOOTED_UDID"
 
-            echo "=== SDK local state (codepush.json) ==="
-            CODEPUSH_JSON=$(find "$CODEPUSH_DIR" -name "codepush.json" 2>/dev/null | head -3)
-            for f in $CODEPUSH_JSON; do
+            SIM_APPS="$HOME/Library/Developer/CoreSimulator/Devices/$BOOTED_UDID/data/Containers/Data/Application"
+
+            echo ""
+            echo "=== codepush.json (active/pending package metadata) ==="
+            while IFS= read -r f; do
               echo "--- $f ---"
               cat "$f"
               echo ""
-            done
+            done < <(find "$SIM_APPS" -path "*/Application Support/CodePush/codepush.json" 2>/dev/null)
+
+            echo ""
+            echo "=== Individual package.json files (staged packages) ==="
+            FOUND=0
+            while IFS= read -r f; do
+              FOUND=1
+              echo "--- $f ---"
+              cat "$f"
+              echo ""
+            done < <(find "$SIM_APPS" -path "*/Application Support/CodePush/*/package.json" 2>/dev/null)
+            [ "$FOUND" -eq 0 ] && echo "(none — update A is active, not staged)"
     - script@1:
         title: Resolve update A manifest hash (via update_check)
         inputs:
@@ -688,23 +695,38 @@ workflows:
         title: 'Diagnose: verify update_check response the SDK will receive'
         inputs:
         - content: |-
-            #!/usr/bin/env bash
             set -euo pipefail
             echo "=== update_check response the SDK will receive ==="
 
-            # Read the package_hash the SDK has stored for update A
-            CODEPUSH_DIR="$HOME/Library/Developer/CoreSimulator/Devices/$(xcrun simctl list devices booted -j | python3 -c "import sys,json; d=json.load(sys.stdin); print(next(v[0]['udid'] for v in d['devices'].values() if v and v[0].get('state')=='Booted'))")/data/Containers/Data/Application"
+            BOOTED_UDID=$(xcrun simctl list devices booted -j | python3 -c "
+            import sys, json
+            d = json.load(sys.stdin)
+            udid = next((v[0]['udid'] for v in d['devices'].values() if v and v[0].get('state') == 'Booted'), None)
+            print(udid or 'NOT_FOUND')
+            ")
+            SIM_APPS="$HOME/Library/Developer/CoreSimulator/Devices/$BOOTED_UDID/data/Containers/Data/Application"
 
-            SDK_HASH=$(find "$CODEPUSH_DIR" -path "*/CodePush/*/package.json" 2>/dev/null | xargs grep -h '"packageHash"' 2>/dev/null | sed 's/.*"packageHash": *"\([^"]*\)".*/\1/' | tail -1)
-            echo "SDK stored package_hash: $SDK_HASH"
+            # Read the packageHash from codepush.json (currentPackage.packageHash)
+            SDK_HASH=""
+            while IFS= read -r f; do
+              SDK_HASH=$(python3 -c "
+            import sys, json
+            with open(sys.argv[1]) as fh:
+                d = json.load(fh)
+            cp = d.get('currentPackage') or {}
+            print(cp.get('packageHash', ''))
+            " "$f" 2>/dev/null || true)
+            done < <(find "$SIM_APPS" -path "*/Application Support/CodePush/codepush.json" 2>/dev/null | head -1)
 
-            # Call update_check with the SDK's actual hash and log the full response
-            RESPONSE=$(curl -sf "https://${BITRISE_WORKSPACE_ID}.codepush.bitrise.io/v0.1/public/codepush/update_check?deployment_key=${CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE}&app_version=6.0.0&package_hash=${SDK_HASH}" 2>/dev/null || echo "curl failed")
-            echo "update_check response: $RESPONSE"
+            echo "SDK currentPackage.packageHash: ${SDK_HASH:-NOT FOUND}"
+            echo "Probe hash (CODEPUSH_PACKAGE_HASH_A): ${CODEPUSH_PACKAGE_HASH_A:-not set}"
+            echo "Hashes match: $([ -n "$SDK_HASH" ] && [ "$SDK_HASH" = "${CODEPUSH_PACKAGE_HASH_A:-}" ] && echo YES || echo NO)"
 
-            # Also show what probe hash was used
-            echo "Probe package_hash (from CODEPUSH_PACKAGE_HASH_A env): ${CODEPUSH_PACKAGE_HASH_A:-not set}"
-            echo "Hashes match: $([ "$SDK_HASH" = "${CODEPUSH_PACKAGE_HASH_A:-}" ] && echo YES || echo NO)"
+            if [ -n "$SDK_HASH" ]; then
+              echo ""
+              echo "=== update_check response for SDK hash ==="
+              curl -sf "https://${BITRISE_WORKSPACE_ID}.codepush.bitrise.io/v0.1/public/codepush/update_check?deployment_key=${CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE}&app_version=6.0.0&package_hash=${SDK_HASH}" 2>/dev/null | python3 -m json.tool || echo "curl failed"
+            fi
     - script@1:
         title: Warm-up launch to trigger update B download
         inputs:
