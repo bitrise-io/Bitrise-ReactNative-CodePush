@@ -721,6 +721,26 @@ workflows:
             xcrun simctl terminate booted org.reactjs.native.example.BitriseReactNativeCodePush 2>/dev/null || true
             sleep 1
     - script@1:
+        title: Diagnostic - what did the warm-up SDK download?
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # Capture network connections to the CodePush artifact storage from
+            # the last 60 seconds. Shows whether the SDK downloaded a diff URL
+            # (diff-<hash>.zip) or a full package URL (update.zip) during the warm-up.
+            echo "=== CodePush artifact downloads during warm-up ==="
+            xcrun simctl spawn booted log show \
+              --predicate 'eventMessage contains "code-push-artifacts"' \
+              --last 60s \
+              2>/dev/null | grep "url:" || echo "(no artifact download URLs found in last 60s)"
+            echo ""
+            echo "=== update_check calls during warm-up ==="
+            xcrun simctl spawn booted log show \
+              --predicate 'eventMessage contains "update_check"' \
+              --last 60s \
+              2>/dev/null | grep "url:" || echo "(no update_check calls found in last 60s)"
+    - script@1:
         title: Run Maestro test asserting update B marker
         inputs:
         - content: |-
