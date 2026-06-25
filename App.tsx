@@ -9,9 +9,9 @@ import {
   FlatList,
   StatusBar,
   Alert,
-  Image,
 } from 'react-native';
 import codePush from '@code-push-next/react-native-code-push';
+import meta from './codepush-update-meta.json';
 
 // Define Todo item type
 interface Todo {
@@ -20,31 +20,11 @@ interface Todo {
   completed: boolean;
 }
 
+const UPDATE_MARKER = meta.marker !== 'baseline' ? meta.marker : '';
+
 const App = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [todoText, setTodoText] = useState('');
-  const [markerText, setMarkerText] = useState('baseline');
-
-  // Load the CodePush marker at runtime from a raw asset
-  // (codepush-update-meta.data) instead of importing it into the JS bundle.
-  // Keeping it a separate asset means a marker-only change produces a tiny
-  // CodePush diff (the asset + hotcodepush.json) rather than regenerating the
-  // whole bundle. Falls back to the hidden "baseline" state on any error.
-  useEffect(() => {
-    try {
-      const src = Image.resolveAssetSource(require('./codepush-update-meta.data'));
-      fetch(src.uri)
-        .then(r => r.json())
-        .then(d => {
-          if (d.marker && d.marker !== 'baseline') {
-            setMarkerText(d.marker);
-          }
-        })
-        .catch(() => {}); // keep baseline on error
-    } catch {
-      // keep baseline on error
-    }
-  }, []);
 
     // Log current package information on app start
     useEffect(() => {
@@ -151,8 +131,8 @@ const App = () => {
       <View style={styles.header}>
         <Text style={styles.title}>Todo List Updated Tests</Text>
         <Text style={styles.subtitle}>With CodePush Integration *</Text>
-        {markerText !== 'baseline' ? (
-          <Text testID="codepush-update-marker" style={styles.marker}>{markerText}</Text>
+        {UPDATE_MARKER ? (
+          <Text testID="codepush-update-marker" style={styles.marker}>{UPDATE_MARKER}</Text>
         ) : null}
       </View>
 
