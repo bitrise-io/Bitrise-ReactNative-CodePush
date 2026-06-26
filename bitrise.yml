@@ -713,8 +713,7 @@ workflows:
             import sys, json
             with open(sys.argv[1]) as fh:
                 d = json.load(fh)
-            cp = d.get('currentPackage') or {}
-            print(cp.get('packageHash', ''))
+            print(d.get('currentPackage', ''))
             " "$f" 2>/dev/null || true)
             done < <(find "$SIM_APPS" -path "*/Application Support/CodePush/codepush.json" 2>/dev/null | head -1)
 
