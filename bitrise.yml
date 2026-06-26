@@ -616,7 +616,7 @@ workflows:
 
             DEPLOYMENT_KEY="${CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE}"
             SERVER_URL="https://${BITRISE_WORKSPACE_ID}.codepush.bitrise.io"
-            QUERY="deployment_key=$(jq -rn --arg v "$DEPLOYMENT_KEY" '$v|@uri')&app_version=6.0.0&package_hash=&client_unique_id=diff-resolve-$(date +%s)&is_companion=false"
+            QUERY="deployment_key=$(jq -rn --arg v "$DEPLOYMENT_KEY" '$v|@uri')&app_version=${CODEPUSH_APP_VERSION}&package_hash=&client_unique_id=diff-resolve-$(date +%s)&is_companion=false"
             URL="${SERVER_URL}/v0.1/public/codepush/update_check?${QUERY}"
 
             echo "Resolving update A manifest hash via update_check..."
@@ -724,8 +724,22 @@ workflows:
             if [ -n "$SDK_HASH" ]; then
               echo ""
               echo "=== update_check response for SDK hash ==="
-              curl -sf "https://${BITRISE_WORKSPACE_ID}.codepush.bitrise.io/v0.1/public/codepush/update_check?deployment_key=${CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE}&app_version=6.0.0&package_hash=${SDK_HASH}" 2>/dev/null | python3 -m json.tool || echo "curl failed"
+              curl -sf "https://${BITRISE_WORKSPACE_ID}.codepush.bitrise.io/v0.1/public/codepush/update_check?deployment_key=${CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE}&app_version=${CODEPUSH_APP_VERSION}&package_hash=${SDK_HASH}" 2>/dev/null | python3 -m json.tool || echo "curl failed"
             fi
+    - script@1:
+        title: 'Diff diag: mark Phase B warm-up start (scopes diff/full evidence)'
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            # Phase A legitimately logs "Applying full update." (it has no
+            # predecessor), so diff/full evidence read with a wide window can be
+            # polluted by Phase A. Record a start timestamp (local time, minus a 5s
+            # margin) so the post-assert diagnostic can scope `log show --start` to
+            # this Phase B warm-up only. macOS BSD `date` supports -v.
+            PHASE_B_START=$(date -v-5S +"%Y-%m-%d %H:%M:%S")
+            envman add --key DIFF_PHASE_B_START --value "$PHASE_B_START"
+            echo "Phase B warm-up start (local): $PHASE_B_START"
     - script@1:
         title: Warm-up launch to trigger update B download
         inputs:
@@ -811,6 +825,50 @@ workflows:
               --last 60s \
               2>/dev/null | grep "url:" || echo "(no update_check calls found in last 60s)"
     - script@1:
+        title: 'Diff diag: staged package metadata (downloadUrl = diff vs full)'
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -o pipefail
+            # Truncation-proof diff-vs-full evidence. The native SDK serialises the
+            # full update object it downloaded -- including the exact downloadUrl it
+            # fetched -- into <CodePush>/<packageHash>/app.json (CodePushPackage.m,
+            # UpdateMetadataFileName). A diff URL contains "diff-"; a full package URL
+            # does not. The OS network logs truncate the artifact URL at the host, so
+            # reading downloadUrl from disk is the only reliable way to see which the
+            # device actually fetched. codepush.json shows the current vs pending
+            # hashes -- note the *runtime* hash the SDK reported on its update_check
+            # (which decides diff vs full server-side) can differ from the on-disk
+            # currentPackage if getCurrentPackage() hit a transient error at check time.
+            DATA_DIR=$(xcrun simctl get_app_container booted org.reactjs.native.example.BitriseReactNativeCodePush data 2>/dev/null || true)
+            CODEPUSH_DIR="$DATA_DIR/Library/Application Support/CodePush"
+            echo "CodePush dir: $CODEPUSH_DIR"
+            echo ""
+            echo "=== codepush.json (currentPackage / pendingPackage) ==="
+            cat "$CODEPUSH_DIR/codepush.json" 2>/dev/null || echo "(codepush.json not found)"
+            echo ""
+            echo "=== staged app.json (downloadUrl tells diff vs full) ==="
+            FOUND=0
+            while IFS= read -r f; do
+              FOUND=1
+              echo "--- $f ---"
+              /usr/bin/python3 -c "
+            import sys, json
+            d = json.load(open(sys.argv[1]))
+            u = d.get('downloadUrl', '') or ''
+            kind = 'DIFF' if 'diff-' in u else ('FULL' if u else 'UNKNOWN')
+            print('downloadUrl:', u or '(none)')
+            print('packageHash:', d.get('packageHash', '(none)'))
+            print('label:', d.get('label', '(none)'))
+            print('=> served as:', kind)
+            " "$f" 2>/dev/null || echo "(could not parse $f)"
+              echo ""
+            done < <(find "$CODEPUSH_DIR" -name app.json 2>/dev/null)
+            if [ "$FOUND" -eq 0 ]; then
+              echo "(no staged app.json found -- nothing was downloaded/staged)"
+            fi
+    - script@1:
         title: Run Maestro test asserting update B marker
         inputs:
         - content: |-
@@ -860,6 +918,46 @@ workflows:
               grep -Ei "codepush" "$LOG" | tail -200 || true
               exit 1
             fi
+    - script@1:
+        title: 'Diff diag: Phase B-scoped diff/full + SDK errors + server probes'
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -o pipefail
+            # Authoritative diff/full signal scoped to the Phase B warm-up only
+            # (DIFF_PHASE_B_START), so Phase A's legitimate "Applying full update."
+            # cannot pollute it. Also surfaces the SDK error lines ("errors within the
+            # SDK, but not always") and confirms the server's per-hash behaviour:
+            # update A's hash -> a diff is served; a fresh/binary client -> full. If the
+            # device applied full while A's hash still yields a diff here, the device's
+            # own update_check did not report A (e.g. getCurrentPackage() came back
+            # empty) -- it is not a post-download diff fallback (the SDK has none).
+            START="${DIFF_PHASE_B_START:-}"
+            if [ -n "$START" ]; then
+              echo "=== Phase B CodePush log (since $START) ==="
+              SCOPED=$(xcrun simctl spawn booted log show --predicate 'eventMessage contains[cd] "CodePush"' --start "$START" 2>/dev/null || true)
+            else
+              echo "=== Phase B CodePush log (DIFF_PHASE_B_START unset; last 8m) ==="
+              SCOPED=$(xcrun simctl spawn booted log show --predicate 'eventMessage contains[cd] "CodePush"' --last 8m 2>/dev/null || true)
+            fi
+            echo "--- Applying diff/full lines (Phase B window) ---"
+            printf '%s\n' "$SCOPED" | grep -Ei "Applying (diff|full) update" || echo "(no 'Applying ...' line in window)"
+            echo ""
+            echo "--- CodePush errors / integrity / signing / metadata (Phase B window) ---"
+            printf '%s\n' "$SCOPED" | grep -Ei "error|fail|integrity|reject|sign|verif|no update|binary version|metadata|download" || echo "(no error/diagnostic lines)"
+            echo ""
+            echo "=== Server response per reported hash (why diff vs full) ==="
+            BASE="https://${BITRISE_WORKSPACE_ID:-}.codepush.bitrise.io/v0.1/public/codepush/update_check"
+            probe() {
+              curl -sf "${BASE}?deployment_key=${CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE:-}&app_version=${CODEPUSH_APP_VERSION:-}&package_hash=$1" 2>/dev/null \
+                | /usr/bin/python3 -c "import sys,json;u=(json.load(sys.stdin).get('update_info') or {}).get('download_url','') or '';print('download_url:', u or '(none)');print('=>','DIFF' if 'diff-' in u else 'FULL')" 2>/dev/null \
+                || echo "(probe failed)"
+            }
+            echo "-- with update A hash (${CODEPUSH_PACKAGE_HASH_A:-<unset>}): a healthy backend returns DIFF --"
+            probe "${CODEPUSH_PACKAGE_HASH_A:-}"
+            echo "-- as a fresh client (empty hash): the backend returns FULL --"
+            probe ""
     - bundle::notify_slack_on_failure:
         inputs:
         - PRETEXT: ":rotating_light: *[Bare RN] CodePush E2E bundle diff test failed*"
