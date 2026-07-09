@@ -70,6 +70,10 @@ workflows:
         - module: app
         - project_location: "$BITRISE_SOURCE_DIR/android"
     - deploy-to-bitrise-io@2: {}
+    meta:
+      bitrise.io:
+        stack: ubuntu-latest-stable
+        machine_type_id: elite
   codepush_update_to_server:
     summary: Push a CodePush update using the Bitrise CodePush CLI plugin.
     steps:
