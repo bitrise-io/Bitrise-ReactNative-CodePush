@@ -173,7 +173,9 @@ workflows:
     - bundle::notify_slack_on_failure:
         inputs:
         - PRETEXT: ":key: *[Bare RN] CodePush nightly: BITRISE_PAT is invalid or expired*"
-        - MESSAGE: "The nightly pipeline was aborted because BITRISE_PAT returned HTTP 401. Please rotate the secret in the Bitrise app settings. — $BITRISE_BUILD_URL"
+        - MESSAGE: The nightly pipeline was aborted because BITRISE_PAT returned HTTP 401.
+            Please rotate the secret in the Bitrise app settings. —
+            $BITRISE_BUILD_URL
   codepush_build_binary_plain:
     meta:
       bitrise.io:
@@ -182,7 +184,7 @@ workflows:
     steps:
     - bundle::build_binary_simulator:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION
+        - APP_VERSION: "$NEW_APP_VERSION"
   codepush_build_binary_cli:
     meta:
       bitrise.io:
@@ -191,7 +193,7 @@ workflows:
     steps:
     - bundle::build_binary_simulator:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_CLI
+        - APP_VERSION: "$NEW_APP_VERSION_CLI"
   codepush_build_binary_signed:
     meta:
       bitrise.io:
@@ -213,7 +215,7 @@ workflows:
     steps:
     - bundle::build_binary_simulator:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_SIGNED
+        - APP_VERSION: "$NEW_APP_VERSION_SIGNED"
   codepush_export_upload:
     meta:
       bitrise.io:
@@ -224,12 +226,14 @@ workflows:
     - bundle::generate_codepush_marker: {}
     - bundle::rn_export_and_upload:
         inputs:
-        - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
-        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
-        - DESCRIPTION: "E2E test - marker: $CODEPUSH_UPDATE_MARKER"
+        - CONNECTED_APP_ID: "$CONNECTED_APP_ID_IOS"
+        - DEPLOYMENT_ID: "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE"
+        - DESCRIPTION: 'E2E test - marker: $CODEPUSH_UPDATE_MARKER'
     - bundle::notify_slack_on_failure:
         inputs:
-        - MESSAGE: "Possible issue: API chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: API chain upload step failed. The CLI push exited with
+            an error or the update was not published to the deployment. — Logs:
+            $BITRISE_BUILD_URL'
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER
@@ -241,18 +245,20 @@ workflows:
     steps:
     - bundle::codepush_js_prepare:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_CLI
+        - APP_VERSION: "$NEW_APP_VERSION_CLI"
     - bundle::generate_codepush_marker:
         inputs:
         - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_CLI
     - bundle::install_codepush_cli: {}
     - bundle::codepush_cli_push:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_CLI
-        - DESCRIPTION: "E2E test - marker: $CODEPUSH_UPDATE_MARKER"
+        - APP_VERSION: "$NEW_APP_VERSION_CLI"
+        - DESCRIPTION: 'E2E test - marker: $CODEPUSH_UPDATE_MARKER'
     - bundle::notify_slack_on_failure:
         inputs:
-        - MESSAGE: "Possible issue: CLI chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: CLI chain upload step failed. The CLI push exited with
+            an error or the update was not published to the deployment. — Logs:
+            $BITRISE_BUILD_URL'
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_CLI
@@ -264,7 +270,7 @@ workflows:
     steps:
     - bundle::codepush_js_prepare:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_SIGNED
+        - APP_VERSION: "$NEW_APP_VERSION_SIGNED"
     - bundle::generate_codepush_marker:
         inputs:
         - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_SIGNED
@@ -280,12 +286,14 @@ workflows:
             chmod 600 /tmp/codepush_private_key.pem
     - bundle::codepush_cli_push:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_SIGNED
-        - DESCRIPTION: "E2E test (signed) - marker: $CODEPUSH_UPDATE_MARKER_SIGNED"
-        - PRIVATE_KEY_PATH: /tmp/codepush_private_key.pem
+        - APP_VERSION: "$NEW_APP_VERSION_SIGNED"
+        - DESCRIPTION: 'E2E test (signed) - marker: $CODEPUSH_UPDATE_MARKER_SIGNED'
+        - PRIVATE_KEY_PATH: "/tmp/codepush_private_key.pem"
     - bundle::notify_slack_on_failure:
         inputs:
-        - MESSAGE: "Possible issue: signed chain upload step failed. The CLI push exited with an error or the signed update was rejected by the server. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: signed chain upload step failed. The CLI push exited
+            with an error or the signed update was rejected by the server. —
+            Logs: $BITRISE_BUILD_URL'
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_SIGNED
@@ -300,7 +308,9 @@ workflows:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_plain
     - bundle::notify_slack_on_failure:
         inputs:
-        - MESSAGE: "Possible issue: API chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: API chain verify failed. The update marker was not
+            visible in the app, or the update was not applied after restart. —
+            Logs: $BITRISE_BUILD_URL'
   codepush_verify_cli:
     meta:
       bitrise.io:
@@ -310,10 +320,12 @@ workflows:
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_cli
-        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_CLI
+        - CODEPUSH_MARKER: "$CODEPUSH_UPDATE_MARKER_CLI"
     - bundle::notify_slack_on_failure:
         inputs:
-        - MESSAGE: "Possible issue: CLI chain verify failed. The update marker was not visible in the app, or the update was not applied after restart. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: CLI chain verify failed. The update marker was not
+            visible in the app, or the update was not applied after restart. —
+            Logs: $BITRISE_BUILD_URL'
   codepush_verify_signed:
     meta:
       bitrise.io:
@@ -323,10 +335,12 @@ workflows:
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_signed
-        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_SIGNED
+        - CODEPUSH_MARKER: "$CODEPUSH_UPDATE_MARKER_SIGNED"
     - bundle::notify_slack_on_failure:
         inputs:
-        - MESSAGE: "Possible issue: signed chain verify failed. The signed update was not applied, or the app rejected it unexpectedly. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: signed chain verify failed. The signed update was not
+            applied, or the app rejected it unexpectedly. — Logs:
+            $BITRISE_BUILD_URL'
   codepush_bump_version_wrong_key:
     meta:
       bitrise.io:
@@ -374,7 +388,7 @@ workflows:
     steps:
     - bundle::build_binary_simulator:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_WRONG_KEY
+        - APP_VERSION: "$NEW_APP_VERSION_WRONG_KEY"
   codepush_build_binary_unsigned:
     meta:
       bitrise.io:
@@ -396,7 +410,7 @@ workflows:
     steps:
     - bundle::build_binary_simulator:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_UNSIGNED
+        - APP_VERSION: "$NEW_APP_VERSION_UNSIGNED"
   codepush_cli_wrong_key_upload:
     meta:
       bitrise.io:
@@ -405,7 +419,7 @@ workflows:
     steps:
     - bundle::codepush_js_prepare:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_WRONG_KEY
+        - APP_VERSION: "$NEW_APP_VERSION_WRONG_KEY"
     - bundle::generate_codepush_marker:
         inputs:
         - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_WRONG_KEY
@@ -420,9 +434,10 @@ workflows:
             chmod 600 /tmp/wrong_private_key.pem
     - bundle::codepush_cli_push:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_WRONG_KEY
-        - DESCRIPTION: "E2E negative test (wrong key) - marker: $CODEPUSH_UPDATE_MARKER_WRONG_KEY"
-        - PRIVATE_KEY_PATH: /tmp/wrong_private_key.pem
+        - APP_VERSION: "$NEW_APP_VERSION_WRONG_KEY"
+        - DESCRIPTION: 'E2E negative test (wrong key) - marker:
+            $CODEPUSH_UPDATE_MARKER_WRONG_KEY'
+        - PRIVATE_KEY_PATH: "/tmp/wrong_private_key.pem"
     - script@1:
         title: Remove wrong key
         is_always_run: true
@@ -432,10 +447,12 @@ workflows:
             rm -f /tmp/wrong_private_key.pem
     - bundle::verify_update_published:
         inputs:
-        - MARKER: $CODEPUSH_UPDATE_MARKER_WRONG_KEY
+        - MARKER: "$CODEPUSH_UPDATE_MARKER_WRONG_KEY"
     - bundle::notify_slack_on_failure:
         inputs:
-        - MESSAGE: "Possible issue: wrong-key chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: wrong-key chain upload step failed. The CLI push
+            exited with an error or the update was not published to the
+            deployment. — Logs: $BITRISE_BUILD_URL'
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_WRONG_KEY
@@ -447,21 +464,24 @@ workflows:
     steps:
     - bundle::codepush_js_prepare:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_UNSIGNED
+        - APP_VERSION: "$NEW_APP_VERSION_UNSIGNED"
     - bundle::generate_codepush_marker:
         inputs:
         - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_UNSIGNED
     - bundle::install_codepush_cli: {}
     - bundle::codepush_cli_push:
         inputs:
-        - APP_VERSION: $NEW_APP_VERSION_UNSIGNED
-        - DESCRIPTION: "E2E negative test (unsigned) - marker: $CODEPUSH_UPDATE_MARKER_UNSIGNED"
+        - APP_VERSION: "$NEW_APP_VERSION_UNSIGNED"
+        - DESCRIPTION: 'E2E negative test (unsigned) - marker:
+            $CODEPUSH_UPDATE_MARKER_UNSIGNED'
     - bundle::verify_update_published:
         inputs:
-        - MARKER: $CODEPUSH_UPDATE_MARKER_UNSIGNED
+        - MARKER: "$CODEPUSH_UPDATE_MARKER_UNSIGNED"
     - bundle::notify_slack_on_failure:
         inputs:
-        - MESSAGE: "Possible issue: unsigned chain upload step failed. The CLI push exited with an error or the update was not published to the deployment. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: unsigned chain upload step failed. The CLI push exited
+            with an error or the update was not published to the deployment. —
+            Logs: $BITRISE_BUILD_URL'
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_UPDATE_MARKER_UNSIGNED
@@ -474,13 +494,15 @@ workflows:
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_wrong_key
-        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_WRONG_KEY
-        - MAESTRO_TEST_FILE: .maestro/codepush_negative_test.yaml
+        - CODEPUSH_MARKER: "$CODEPUSH_UPDATE_MARKER_WRONG_KEY"
+        - MAESTRO_TEST_FILE: ".maestro/codepush_negative_test.yaml"
     - bundle::assert_codepush_signature_rejection: {}
     - bundle::notify_slack_on_failure:
         inputs:
         - PRETEXT: ":rotating_light: *[Bare RN] CodePush E2E negative test failed*"
-        - MESSAGE: "Possible issue: SDK did NOT reject the wrong-key update as expected. The app may have applied an update signed with a mismatched key — signature enforcement may be broken. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: SDK did NOT reject the wrong-key update as expected.
+            The app may have applied an update signed with a mismatched key —
+            signature enforcement may be broken. — Logs: $BITRISE_BUILD_URL'
   codepush_verify_unsigned:
     meta:
       bitrise.io:
@@ -490,13 +512,15 @@ workflows:
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_unsigned
-        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_UNSIGNED
-        - MAESTRO_TEST_FILE: .maestro/codepush_negative_test.yaml
+        - CODEPUSH_MARKER: "$CODEPUSH_UPDATE_MARKER_UNSIGNED"
+        - MAESTRO_TEST_FILE: ".maestro/codepush_negative_test.yaml"
     - bundle::assert_codepush_signature_rejection: {}
     - bundle::notify_slack_on_failure:
         inputs:
         - PRETEXT: ":rotating_light: *[Bare RN] CodePush E2E negative test failed*"
-        - MESSAGE: "Possible issue: SDK did NOT reject the unsigned update as expected. The app may have applied an unsigned update despite signature enforcement being enabled. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: SDK did NOT reject the unsigned update as expected.
+            The app may have applied an unsigned update despite signature
+            enforcement being enabled. — Logs: $BITRISE_BUILD_URL'
   codepush_diff_build_binary:
     summary: Build the unsigned simulator binary used by the bundle-diff E2E test.
     meta:
@@ -522,12 +546,13 @@ workflows:
             echo "Bundle-diff app version: $VERSION"
     - bundle::build_binary_simulator:
         inputs:
-        - APP_VERSION: $CODEPUSH_APP_VERSION
+        - APP_VERSION: "$CODEPUSH_APP_VERSION"
     - share-pipeline-variable@1.1.0:
         inputs:
         - variables: CODEPUSH_APP_VERSION
   codepush_diff_test:
-    summary: Two-phase bundle-diff E2E test — install update A, then verify update B is served as a diff.
+    summary: Two-phase bundle-diff E2E test — install update A, then verify update B
+      is served as a diff.
     description: |-
       Runs both phases on a single machine because the simulator state (the
       installed package A and the hash the SDK reports on the next update
@@ -546,22 +571,21 @@ workflows:
         stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
-    # --- Phase A: push update A and let the SDK install it ---
     - bundle::codepush_js_prepare:
         inputs:
-        - APP_VERSION: $CODEPUSH_APP_VERSION
+        - APP_VERSION: "$CODEPUSH_APP_VERSION"
     - bundle::generate_codepush_marker:
         inputs:
         - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_A
     - bundle::rn_export_and_upload:
         inputs:
-        - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
-        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
-        - DESCRIPTION: "E2E bundle diff test - update A - marker: $CODEPUSH_UPDATE_MARKER_A"
+        - CONNECTED_APP_ID: "$CONNECTED_APP_ID_IOS"
+        - DEPLOYMENT_ID: "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE"
+        - DESCRIPTION: 'E2E bundle diff test - update A - marker: $CODEPUSH_UPDATE_MARKER_A'
     - bundle::verify_codepush:
         inputs:
         - ARTIFACT_SOURCE_WORKFLOW: codepush_diff_build_binary
-        - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER_A
+        - CODEPUSH_MARKER: "$CODEPUSH_UPDATE_MARKER_A"
     - script@1:
         title: Resolve update A manifest hash (via update_check)
         inputs:
@@ -603,18 +627,17 @@ workflows:
 
             [ -n "$HASH" ] || (echo "ERROR: could not determine update A manifest hash" && exit 1)
             envman add --key CODEPUSH_PACKAGE_HASH_A --value "$HASH"
-    # --- Phase B: push update B at the SAME app version (no version bump) ---
     - bundle::codepush_js_prepare:
         inputs:
-        - APP_VERSION: $CODEPUSH_APP_VERSION
+        - APP_VERSION: "$CODEPUSH_APP_VERSION"
     - bundle::generate_codepush_marker:
         inputs:
         - MARKER_ENV_KEY: CODEPUSH_UPDATE_MARKER_B
     - bundle::rn_export_and_upload:
         inputs:
-        - CONNECTED_APP_ID: $CONNECTED_APP_ID_IOS
-        - DEPLOYMENT_ID: $CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE
-        - DESCRIPTION: "E2E bundle diff test - update B - marker: $CODEPUSH_UPDATE_MARKER_B"
+        - CONNECTED_APP_ID: "$CONNECTED_APP_ID_IOS"
+        - DEPLOYMENT_ID: "$CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE"
+        - DESCRIPTION: 'E2E bundle diff test - update B - marker: $CODEPUSH_UPDATE_MARKER_B'
     - script@1:
         title: Wait until update_check serves a diff for update A
         inputs:
@@ -767,7 +790,51 @@ workflows:
     - bundle::notify_slack_on_failure:
         inputs:
         - PRETEXT: ":rotating_light: *[Bare RN] CodePush E2E bundle diff test failed*"
-        - MESSAGE: "Possible issue: a bundle diff was not generated or not served. Either update B never received a diff_package_map (diff generation off / gate disabled / no eligible predecessor at the same app version) or the SDK downloaded the full package instead of the diff. — Logs: $BITRISE_BUILD_URL"
+        - MESSAGE: 'Possible issue: a bundle diff was not generated or not served. Either
+            update B never received a diff_package_map (diff generation off /
+            gate disabled / no eligible predecessor at the same app version) or
+            the SDK downloaded the full package instead of the diff. — Logs:
+            $BITRISE_BUILD_URL'
+  IPA:
+    summary: Build iOS simulator binary and create JS bundle.
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone@8: {}
+    - npm@1:
+        inputs:
+        - command: install
+    - cocoapods-install@2:
+        inputs:
+        - is_cache_disabled: true
+        - source_root_path: ios
+    - script@1:
+        title: Set Version
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            VERSION=$(node -p "require('./package.json').version")
+            [ -n "$VERSION" ] || (echo "Error: Could not extract version from package.json" && exit 1)
+            envman add --key MARKETING_VERSION --value "$VERSION"
+    - xcode-build-for-simulator@3:
+        inputs:
+        - configuration: release
+        - xcodebuild_options: |-
+            CODE_SIGN_IDENTITY=""
+            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_ALLOWED=NO
+            MARKETING_VERSION=$MARKETING_VERSION
+            CODEPUSH_KEY=$CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE
+            CODEPUSH_SERVER_URL=https://$BITRISE_WORKSPACE_ID.codepush.bitrise.io
+        - verbose_log: 'yes'
+    - xcode-archive@6:
+        inputs:
+        - platform: iOS
+        - distribution_method: development
+        - automatic_code_signing: api-key
+        - register_test_devices: "yes"
+    - deploy-to-bitrise-io@2: {}
 app:
   envs:
   - BITRISE_PROJECT_PATH: ios/BitriseReactNativeCodePush.xcworkspace
@@ -779,28 +846,28 @@ app:
   - BITRISE_DISTRIBUTION_METHOD: development
     opts:
       is_expand: false
-  - MAESTRO_VERSION_NUMBER: "1.41.0"
+  - MAESTRO_VERSION_NUMBER: 1.41.0
     opts:
       is_expand: false
-  - CONNECTED_APP_ID_IOS: "aaad9c12-d388-447a-81f4-3c980e9b4ece"
+  - CONNECTED_APP_ID_IOS: aaad9c12-d388-447a-81f4-3c980e9b4ece
     opts:
       is_expand: false
-  - CONNECTED_APP_ID_ANDROID: "ee256b46-93f1-477a-82ec-774163218c54"
+  - CONNECTED_APP_ID_ANDROID: ee256b46-93f1-477a-82ec-774163218c54
     opts:
       is_expand: false
-  - CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE: "041c0665-5c0a-4958-a85e-ddcc535f9cab"
+  - CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE: 041c0665-5c0a-4958-a85e-ddcc535f9cab
     opts:
       is_expand: false
-  - CODE_PUSH_DEPLOYMENT_ID_IOS_PROD: "89825733-f5ac-409e-bd4b-1a0e2f0fbc3a"
+  - CODE_PUSH_DEPLOYMENT_ID_IOS_PROD: 89825733-f5ac-409e-bd4b-1a0e2f0fbc3a
     opts:
       is_expand: false
-  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_STAGE: "14e5b6af-c80e-4aba-8f21-164c3c75ab39"
+  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_STAGE: 14e5b6af-c80e-4aba-8f21-164c3c75ab39
     opts:
       is_expand: false
-  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_PROD: "04808b5f-cb10-40a9-ba86-d0dd82adeea2"
+  - CODE_PUSH_DEPLOYMENT_ID_ANDROID_PROD: '04808b5f-cb10-40a9-ba86-d0dd82adeea2'
     opts:
       is_expand: false
-  - BITRISE_WORKSPACE_ID: "4afa6c4aa8991295"
+  - BITRISE_WORKSPACE_ID: 4afa6c4aa8991295
     opts:
       is_expand: false
 step_bundles:
@@ -827,9 +894,9 @@ step_bundles:
             fi
   codepush_cli_push:
     inputs:
-    - APP_VERSION: ""
-    - DESCRIPTION: ""
-    - PRIVATE_KEY_PATH: ""
+    - APP_VERSION: ''
+    - DESCRIPTION: ''
+    - PRIVATE_KEY_PATH: ''
     steps:
     - script@1:
         title: Push CodePush update via CLI
@@ -853,7 +920,7 @@ step_bundles:
               ${PRIVATE_KEY_PATH:+--private-key-path "$PRIVATE_KEY_PATH"}
   verify_update_published:
     inputs:
-    - MARKER: ""
+    - MARKER: ''
     steps:
     - script@1:
         title: Verify update was published to deployment
@@ -898,22 +965,26 @@ step_bundles:
   notify_slack_on_failure:
     inputs:
     - PRETEXT: ":x: *[Bare RN] CodePush E2E pipeline failed*"
-    - MESSAGE: ""
+    - MESSAGE: ''
     steps:
     - slack@4:
         is_always_run: true
         run_if: '{{ getenv "BITRISE_BUILD_STATUS" | eq "1" }}'
         inputs:
         - channel: "#tmp-release-automation-dev-notifications"
-        - pretext_on_error: $PRETEXT
-        - title_on_error: "Pipeline #$BITRISE_BUILD_NUMBER — View details"
-        - title_link: $BITRISEIO_PIPELINE_BUILD_URL
-        - message_on_error: $MESSAGE
-        - fields: "Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID\nBranch|$BITRISE_GIT_BRANCH"
+        - pretext_on_error: "$PRETEXT"
+        - title_on_error: 'Pipeline #$BITRISE_BUILD_NUMBER — View details'
+        - title_link: "$BITRISEIO_PIPELINE_BUILD_URL"
+        - message_on_error: "$MESSAGE"
+        - fields: |-
+            Workflow|$BITRISE_TRIGGERED_WORKFLOW_ID
+            Branch|$BITRISE_GIT_BRANCH
         - color_on_error: "#FF0000"
-        - buttons: "View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}\nView Workflow Logs|${BITRISE_BUILD_URL}"
-        - author_name: ""
-        - webhook_url: $SLACK_WEBHOOK_URL
+        - buttons: |-
+            View Pipeline Build|${BITRISEIO_PIPELINE_BUILD_URL}
+            View Workflow Logs|${BITRISE_BUILD_URL}
+        - author_name: ''
+        - webhook_url: "$SLACK_WEBHOOK_URL"
   fetch_source:
     steps:
     - activate-ssh-key@4:
@@ -921,12 +992,12 @@ step_bundles:
     - git-clone@8: {}
   build_binary_simulator:
     inputs:
-    - APP_VERSION: ""
+    - APP_VERSION: ''
     steps:
     - bundle::fetch_source: {}
     - bundle::apply_bumped_version:
         inputs:
-        - APP_VERSION: $APP_VERSION
+        - APP_VERSION: "$APP_VERSION"
     - npm@1:
         inputs:
         - command: install
@@ -937,7 +1008,7 @@ step_bundles:
     - script@1:
         title: Inject CodePush public key into Info.plist
         inputs:
-        - runner_bin: /usr/bin/python3
+        - runner_bin: "/usr/bin/python3"
         - content: |-
             import plistlib, os, sys
 
@@ -978,10 +1049,10 @@ step_bundles:
             envman add --key CODEPUSH_APP_ZIP_PATH --value "$ZIP_PATH"
     - deploy-to-bitrise-io@2:
         inputs:
-        - pipeline_intermediate_files: "CODEPUSH_APP_ZIP_PATH"
+        - pipeline_intermediate_files: CODEPUSH_APP_ZIP_PATH
   apply_bumped_version:
     inputs:
-    - APP_VERSION: ""
+    - APP_VERSION: ''
     steps:
     - script@1:
         title: Apply bumped version (local only — not committed)
@@ -1024,12 +1095,12 @@ step_bundles:
             envman add --key "$VERSION_ENV_KEY" --value "$NEW_VERSION"
   codepush_js_prepare:
     inputs:
-    - APP_VERSION: $NEW_APP_VERSION
+    - APP_VERSION: "$NEW_APP_VERSION"
     steps:
     - bundle::fetch_source: {}
     - bundle::apply_bumped_version:
         inputs:
-        - APP_VERSION: $APP_VERSION
+        - APP_VERSION: "$APP_VERSION"
     - npm@1:
         inputs:
         - command: install
@@ -1061,10 +1132,10 @@ step_bundles:
   rn_export_and_upload:
     inputs:
     - PLATFORM_TARGET: ios
-    - BUNDLE_OUTPUT_PATH: ./build/main.jsbundle
+    - BUNDLE_OUTPUT_PATH: "./build/main.jsbundle"
     - CONNECTED_APP_ID:
     - DEPLOYMENT_ID:
-    - DESCRIPTION: ""
+    - DESCRIPTION: ''
     steps:
     - script@1:
         title: Extract App Version
@@ -1136,13 +1207,13 @@ step_bundles:
   verify_codepush:
     inputs:
     - ARTIFACT_SOURCE_WORKFLOW: codepush_build_binary_plain
-    - CODEPUSH_MARKER: $CODEPUSH_UPDATE_MARKER
-    - MAESTRO_TEST_FILE: .maestro/codepush_update_test.yaml
+    - CODEPUSH_MARKER: "$CODEPUSH_UPDATE_MARKER"
+    - MAESTRO_TEST_FILE: ".maestro/codepush_update_test.yaml"
     steps:
     - bundle::fetch_source: {}
     - pull-intermediate-files@1:
         inputs:
-        - artifact_sources: $ARTIFACT_SOURCE_WORKFLOW
+        - artifact_sources: "$ARTIFACT_SOURCE_WORKFLOW"
     - xcode-start-simulator@0:
         inputs:
         - destination: platform=iOS Simulator,OS=latest,name=iPhone 16
@@ -1288,7 +1359,7 @@ step_bundles:
         title: Attach video to test report
         is_always_run: true
         inputs:
-        - runner_bin: /usr/bin/python3
+        - runner_bin: "/usr/bin/python3"
         - content: |-
             import xml.etree.ElementTree as ET
 
