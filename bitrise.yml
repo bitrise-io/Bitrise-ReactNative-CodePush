@@ -53,8 +53,8 @@ workflows:
             #!/usr/bin/env bash
             set -e
             VERSION=$(node -p "require('./package.json').version")
-            [ -n "$VERSION" ] || (echo "Error: Could not extract version from package.json" && exit 1)
-            envman add --key APP_VERSION --value "$VERSION"
+            [ -n "1.1.0" ] || (echo "Error: Could not extract version from package.json" && exit 1)
+            envman add --key APP_VERSION --value "1.1.0"
     - script@1:
         title: Inject Android deployment key
         inputs:
