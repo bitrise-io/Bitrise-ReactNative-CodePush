@@ -12,6 +12,7 @@ workflows:
     - npm@1:
         inputs:
         - command: install
+    - bundle::setup-tools: {}
     - cocoapods-install@2:
         inputs:
         - is_cache_disabled: true
@@ -808,6 +809,7 @@ workflows:
     - npm@1:
         inputs:
         - command: install
+    - bundle::setup-tools: {}
     - cocoapods-install@2:
         inputs:
         - is_cache_disabled: true
@@ -864,6 +866,11 @@ app:
     opts:
       is_expand: false
 step_bundles:
+  setup-tools:
+    steps:
+    - dependency-installer@1:
+        inputs:
+        - tool_version_file: .tool-versions
   install_codepush_cli:
     steps:
     - script@1:
@@ -994,6 +1001,7 @@ step_bundles:
     - npm@1:
         inputs:
         - command: install
+    - bundle::setup-tools: {}
     - cocoapods-install@2:
         inputs:
         - is_cache_disabled: true

@@ -1,7 +1,7 @@
 PODS:
   - Base64 (1.1.2)
   - boost (1.84.0)
-  - CodePush (10.0.0):
+  - CodePush (10.0.1):
     - Base64 (~> 1.1)
     - JWT (~> 3.0.0-beta.12)
     - React-Core
@@ -1755,7 +1755,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Base64: cecfb41a004124895a7bcee567a89bae5a89d49b
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
-  CodePush: ff28a5b136a0592d6da409557ac09e71d604edaf
+  CodePush: a1b54666751ae293aa5c0067067b73dd8a780ff3
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: 6fe148afcef2e3213e484758e3459609d40d57f5
@@ -1763,7 +1763,7 @@ SPEC CHECKSUMS:
   glog: eb93e2f488219332457c3c4eafd2738ddc7e80b8
   hermes-engine: b417d2b2aee3b89b58e63e23a51e02be91dc876d
   JWT: ef71dfb03e1f842081e64dc42eef0e164f35d251
-  RCT-Folly: 36fe2295e44b10d831836cc0d1daec5f8abcf809
+  RCT-Folly: e78785aa9ba2ed998ea4151e314036f6c49e6d82
   RCTDeprecation: b2eecf2d60216df56bc5e6be5f063826d3c1ee35
   RCTRequired: 78522de7dc73b81f3ed7890d145fa341f5bb32ea
   RCTTypeSafety: c135dd2bf50402d87fd12884cbad5d5e64850edd
@@ -1827,4 +1827,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: 13725ec6583608bea0b532165907279923d41e9d
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.17.0
