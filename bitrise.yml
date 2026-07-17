@@ -184,7 +184,6 @@ workflows:
   codepush_build_binary_plain:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::build_binary_simulator:
@@ -193,7 +192,6 @@ workflows:
   codepush_build_binary_cli:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::build_binary_simulator:
@@ -202,7 +200,6 @@ workflows:
   codepush_build_binary_signed:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     envs:
     - CODE_PUSH_PUBLIC_KEY: |
@@ -305,7 +302,6 @@ workflows:
   codepush_verify:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::verify_codepush:
@@ -319,7 +315,6 @@ workflows:
   codepush_verify_cli:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::verify_codepush:
@@ -334,7 +329,6 @@ workflows:
   codepush_verify_signed:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::verify_codepush:
@@ -375,7 +369,6 @@ workflows:
   codepush_build_binary_wrong_key:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     envs:
     - CODE_PUSH_PUBLIC_KEY: |
@@ -397,7 +390,6 @@ workflows:
   codepush_build_binary_unsigned:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     envs:
     - CODE_PUSH_PUBLIC_KEY: |
@@ -493,7 +485,6 @@ workflows:
   codepush_verify_wrong_key:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::verify_codepush:
@@ -511,7 +502,6 @@ workflows:
   codepush_verify_unsigned:
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::verify_codepush:
@@ -530,7 +520,6 @@ workflows:
     summary: Build the unsigned simulator binary used by the bundle-diff E2E test.
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::fetch_source: {}
@@ -573,7 +562,6 @@ workflows:
       full package.
     meta:
       bitrise.io:
-        stack: osx-xcode-16.0.x
         machine_type_id: g2.mac.medium
     steps:
     - bundle::codepush_js_prepare:
