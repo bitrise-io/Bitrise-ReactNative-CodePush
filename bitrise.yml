@@ -870,7 +870,7 @@ step_bundles:
     steps:
     - dependency-installer@1:
         inputs:
-        - tool_version_file: .tool-versions
+        - tool_version_file: ".tool-versions"
   install_codepush_cli:
     steps:
     - script@1:
@@ -1589,5 +1589,5 @@ pipelines:
         - codepush_diff_build_binary
 meta:
   bitrise.io:
-    stack: osx-xcode-16.0.x
+    stack: osx-xcode-16.4.x
     machine_type_id: g2.mac.medium
