@@ -841,6 +841,9 @@ app:
   - CODE_PUSH_DEPLOYMENT_ID_IOS_STAGE: 041c0665-5c0a-4958-a85e-ddcc535f9cab
     opts:
       is_expand: false
+  - CODE_PUSH_DEPLOYMENT_KEY_IOS_STAGE: '5ZXcy9Wk4qE51XTOBbY9hT2VPx3eYWFhZDljMTItZDM4OC00NDdhLTgxZjQtM2M5ODBlOWI0ZWNl'
+    opts:
+      is_expand: false
   - CODE_PUSH_DEPLOYMENT_ID_IOS_PROD: 89825733-f5ac-409e-bd4b-1a0e2f0fbc3a
     opts:
       is_expand: false
