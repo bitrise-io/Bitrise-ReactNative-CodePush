@@ -204,13 +204,13 @@ workflows:
     envs:
     - CODE_PUSH_PUBLIC_KEY: |
         -----BEGIN PUBLIC KEY-----
-        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA/EGf/H8PaZleG5tMeNb1
-        oG2thHtYT3rb6gs/zn/qzarytzRUlnPNcrUDV2jBjjCQrBLuPBMVTX8+MHViL2HD
-        THuiaiRX8oSeBWJJplcmaMPhBmumSngi2E/uzUDU103pFfo3Lwq6GuiMSVRHIUDN
-        S8QkWp9cQtZ8y3uMZeCp89lcJ/RPzUnBHx2bbGjjfp7DS0Re74cNaVvqWRjdHXkA
-        GQnh3xFGiLg8XWrw2hfk+qHomCVvYVUQ7P6nxpgbY/lcIyM8V+NVgvi8uXNUR0DM
-        sCTf64nC+LYlK6KkYjVTh8bV3gDpdXFHtWgq6QYmoKx4CY24jVMsWGr++uLXKNA1
-        TQIDAQAB
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw1/ytTET7uecBOs66Fam
+        EnW/vfNF7UYVNIt9cfquDbSeopKWSxwkE4WBkeG3g7/eZXhSTV/PbIV+wZI9iMvI
+        lui9e6MvFZgOqHls3+fee8gMI52MO++C5sv9Z8ABusqe6ZTgwe2FZpz13lH2mMcO
+        EcjoJW9Iopy6XSJvN8DTG2RlRpoanb540qf3iy6O3tB8Q97CmpcDu0e74yav08My
+        lSd6pVx6sJq4k+uTJoMWCuLDxpStFkWmp7oJvTNDCn2agO1UZp+6nf0k/9jKKUcL
+        QMmQd/UQx70He6y3uQ2KQsp9CBJkt5FmA8j+ne2ZP+2EeGRBdpdAEQUlSo3Wv69q
+        OQIDAQAB
         -----END PUBLIC KEY-----
       opts:
         is_expand: false
@@ -373,13 +373,13 @@ workflows:
     envs:
     - CODE_PUSH_PUBLIC_KEY: |
         -----BEGIN PUBLIC KEY-----
-        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA/EGf/H8PaZleG5tMeNb1
-        oG2thHtYT3rb6gs/zn/qzarytzRUlnPNcrUDV2jBjjCQrBLuPBMVTX8+MHViL2HD
-        THuiaiRX8oSeBWJJplcmaMPhBmumSngi2E/uzUDU103pFfo3Lwq6GuiMSVRHIUDN
-        S8QkWp9cQtZ8y3uMZeCp89lcJ/RPzUnBHx2bbGjjfp7DS0Re74cNaVvqWRjdHXkA
-        GQnh3xFGiLg8XWrw2hfk+qHomCVvYVUQ7P6nxpgbY/lcIyM8V+NVgvi8uXNUR0DM
-        sCTf64nC+LYlK6KkYjVTh8bV3gDpdXFHtWgq6QYmoKx4CY24jVMsWGr++uLXKNA1
-        TQIDAQAB
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw1/ytTET7uecBOs66Fam
+        EnW/vfNF7UYVNIt9cfquDbSeopKWSxwkE4WBkeG3g7/eZXhSTV/PbIV+wZI9iMvI
+        lui9e6MvFZgOqHls3+fee8gMI52MO++C5sv9Z8ABusqe6ZTgwe2FZpz13lH2mMcO
+        EcjoJW9Iopy6XSJvN8DTG2RlRpoanb540qf3iy6O3tB8Q97CmpcDu0e74yav08My
+        lSd6pVx6sJq4k+uTJoMWCuLDxpStFkWmp7oJvTNDCn2agO1UZp+6nf0k/9jKKUcL
+        QMmQd/UQx70He6y3uQ2KQsp9CBJkt5FmA8j+ne2ZP+2EeGRBdpdAEQUlSo3Wv69q
+        OQIDAQAB
         -----END PUBLIC KEY-----
       opts:
         is_expand: false
@@ -394,13 +394,13 @@ workflows:
     envs:
     - CODE_PUSH_PUBLIC_KEY: |
         -----BEGIN PUBLIC KEY-----
-        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA/EGf/H8PaZleG5tMeNb1
-        oG2thHtYT3rb6gs/zn/qzarytzRUlnPNcrUDV2jBjjCQrBLuPBMVTX8+MHViL2HD
-        THuiaiRX8oSeBWJJplcmaMPhBmumSngi2E/uzUDU103pFfo3Lwq6GuiMSVRHIUDN
-        S8QkWp9cQtZ8y3uMZeCp89lcJ/RPzUnBHx2bbGjjfp7DS0Re74cNaVvqWRjdHXkA
-        GQnh3xFGiLg8XWrw2hfk+qHomCVvYVUQ7P6nxpgbY/lcIyM8V+NVgvi8uXNUR0DM
-        sCTf64nC+LYlK6KkYjVTh8bV3gDpdXFHtWgq6QYmoKx4CY24jVMsWGr++uLXKNA1
-        TQIDAQAB
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw1/ytTET7uecBOs66Fam
+        EnW/vfNF7UYVNIt9cfquDbSeopKWSxwkE4WBkeG3g7/eZXhSTV/PbIV+wZI9iMvI
+        lui9e6MvFZgOqHls3+fee8gMI52MO++C5sv9Z8ABusqe6ZTgwe2FZpz13lH2mMcO
+        EcjoJW9Iopy6XSJvN8DTG2RlRpoanb540qf3iy6O3tB8Q97CmpcDu0e74yav08My
+        lSd6pVx6sJq4k+uTJoMWCuLDxpStFkWmp7oJvTNDCn2agO1UZp+6nf0k/9jKKUcL
+        QMmQd/UQx70He6y3uQ2KQsp9CBJkt5FmA8j+ne2ZP+2EeGRBdpdAEQUlSo3Wv69q
+        OQIDAQAB
         -----END PUBLIC KEY-----
       opts:
         is_expand: false
